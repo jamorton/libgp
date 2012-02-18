@@ -58,5 +58,6 @@ static inline uint urand(uint low, uint high)
 GpProgram * gp_program_new(GpWorld *);
 GpWorld * gp_world_new();
 void gp_world_add_op(GpWorld *, GpOperation);
+void gp_program_str(GpProgram *);
 
 #endif

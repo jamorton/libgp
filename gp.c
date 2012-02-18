@@ -19,7 +19,7 @@ GpProgram * gp_program_new(GpWorld * world)
 	return program;
 }
 
-GpProgram * gp_program_str(GpProgram * program)
+void gp_program_str(GpProgram * program)
 {
 	uint i;
 	for (i = 0; i < program->num_stmts; i++)
