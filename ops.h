@@ -1,17 +1,19 @@
 
 #define GP_OPERATION(name, na) \
 	static const uint gp_op_##name##_nargs = na; \
-	void gp_op_##name(RunState * state, program_num ** args, program_num * out)
-
-typedef struct {
-	uint nargs;
-	Operation op;
-} OperationList[];
-
-#define GP_OP(name) { gp_op_##name##_nargs, &gp_op_##name }
+	static const char * gp_op_##name##_name = #name; \
+	void gp_op_##name(GpState * state, gp_num ** args, gp_num * out)
 
 #define GP_Out    (*out)
 #define GP_Arg(x) (*(args[(x)]))
+
+typedef struct {
+	uint num_args;
+	const char * name;
+	GpOperationFunc func;
+} GpOperation;
+
+#define GP_OP(name) ((GpOperation){ gp_op_##name##_nargs, gp_op_##name##_name, &gp_op_##name })
 
 GP_OPERATION(add, 2)
 {
