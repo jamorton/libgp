@@ -19,6 +19,10 @@
 #define GP_TYPE unsigned int
 #endif
 
+#ifndef GP_MUTATE_RATE
+#define GP_MUTATE_RATE 0.01
+#endif
+
 typedef GP_TYPE gp_num;
 typedef unsigned int uint;
 
@@ -74,9 +78,16 @@ static inline uint urand(uint low, uint high)
 	return gen_rand32() % (high - low) + low;
 }
 
+static inline double drand(void)
+{
+	return (double)(gen_rand32()) / UINT32_MAX;
+}
+
 GpProgram * gp_program_new(GpWorld *);
+GpProgram * gp_program_combine(GpWorld *, GpProgram *, GpProgram *);
+void gp_program_debug(GpProgram *);
 GpWorld * gp_world_new(void);
 void gp_world_add_op(GpWorld *, GpOperation);
-void gp_program_str(GpProgram *);
+
 
 #endif
