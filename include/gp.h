@@ -31,16 +31,19 @@
 #define GP_NUM_INPUTS 1
 #endif
 
+#ifndef GP_CONSTANT_FUNC
+#define GP_CONSTANT_FUNC gen_rand32
+#endif
+
 typedef GP_TYPE gp_num;
 typedef unsigned int uint;
 
 typedef struct {
 	gp_num registers[GP_NUM_REGISTERS];
-	gp_num inputs[GP_NUM_INPUTS];
+	gp_num * inputs;;
 	uint ip;
 	void * data;
 } GpState;
-
 
 typedef enum {
 	GP_ARG_REGISTER = 0,
@@ -94,11 +97,12 @@ static inline double drand(void)
 
 GpProgram * gp_program_new(GpWorld *);
 GpProgram * gp_program_combine(GpWorld *, GpProgram *, GpProgram *);
-void gp_program_run(GpWorld *, GpProgram *);
+GpState gp_program_run(GpWorld *, GpProgram *, gp_num[GP_NUM_INPUTS]);
+void gp_world_initialize(GpWorld *);
+
 void gp_program_debug(GpProgram *);
 
 GpWorld * gp_world_new(void);
 void gp_world_add_op(GpWorld *, GpOperation);
-
 
 #endif
