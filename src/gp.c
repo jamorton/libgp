@@ -12,12 +12,16 @@ static inline uint umin(uint a, uint b)
 static GpStatement gp_random_statement(GpWorld * world)
 {
 	uint j;
+
 	GpStatement stmt;
 	stmt.output = urand(0, GP_NUM_REGISTERS);
 	stmt.op = &world->ops[urand(0, world->num_ops)];
+
+	uint randopt = GP_NUM_INPUTS == 0 ? 2 : 3;
+
 	for (j = 0; j < stmt.op->num_args; j++)
 	{
-		switch (urand(0, 3))
+		switch (urand(0, randopt))
 		{
 		case 0:
 			stmt.args[j].type = GP_ARG_REGISTER;
@@ -29,7 +33,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 			break;
 		case 2:
 			stmt.args[j].type = GP_ARG_INPUT;
-			stmt.args[j].data.num = urand(0, world->num_inputs);
+			stmt.args[j].data.reg = urand(0, GP_NUM_INPUTS);
 			break;
 		}
 	}
@@ -107,11 +111,30 @@ void gp_program_debug(GpProgram * program)
 	}
 }
 
+void gp_program_run(GpWorld * word, GpProgram * program)
+{
+	uint i;
+	GpState state;
+	state.ip = 0;
+	for (i = 0; i < GP_NUM_REGISTERS; i++)
+		state.registers[i] = 0;
+
+	while (state.ip < program->num_stmts)
+	{
+		GpStatement * stmt = &program->stmts[i];
+		(*stmt->op->func)(&state, stmt->args, &state.registers[stmt->output]);
+		state.ip++;
+	}
+}
+
 GpWorld * gp_world_new()
 {
+	uint i;
 	GpWorld * world = new(GpWorld);
 	world->num_ops = 0;
 	world->ops = NULL;
+	for (i = 0; i < GP_POPULATION_SIZE; i++)
+		world->programs[i] = gp_program_new(world);
 	return world;
 }
 
@@ -132,22 +155,6 @@ int main(void)
 	
 	GpWorld * world = gp_world_new();
 
-	world->num_inputs = 1;
-	
 	gp_world_add_op(world, GP_OP(add));
-	gp_world_add_op(world, GP_OP(mul));
-	
-	GpProgram * mom = gp_program_new(world);
-	GpProgram * dad = gp_program_new(world);
-
-	printf("mom\n");
-	gp_program_debug(mom);
-	printf("\ndad\n");
-	gp_program_debug(dad);
-	
-	GpProgram * children = gp_program_combine(world, mom, dad);
-	printf("\nchild 1\n");
-	gp_program_debug(&children[0]);
-	printf("\nchild 2\n");
-	gp_program_debug(&children[1]);
+	gp_world_add_op(world, GP_OP(mul));	
 }

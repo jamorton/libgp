@@ -23,17 +23,24 @@
 #define GP_MUTATE_RATE 0.01
 #endif
 
+#ifndef GP_POPULATION_SIZE
+#define GP_POPULATION_SIZE 100000
+#endif
+
+#ifndef GP_NUM_INPUTS
+#define GP_NUM_INPUTS 1
+#endif
+
 typedef GP_TYPE gp_num;
 typedef unsigned int uint;
 
 typedef struct {
 	gp_num registers[GP_NUM_REGISTERS];
+	gp_num inputs[GP_NUM_INPUTS];
 	uint ip;
+	void * data;
 } GpState;
 
-typedef void (*GpOperationFunc)(GpState *, gp_num **, gp_num *);
-
-#include "ops.h"
 
 typedef enum {
 	GP_ARG_REGISTER = 0,
@@ -50,6 +57,8 @@ typedef struct {
 	} data;
 } GpArg;
 
+#include "ops.h"
+
 typedef struct {
 	uint output;
 	GpArg args[GP_MAX_ARGS];
@@ -63,8 +72,8 @@ typedef struct {
 
 typedef struct {
 	uint num_ops;
-	uint num_inputs;
 	GpOperation * ops;
+	GpProgram * programs[GP_POPULATION_SIZE];
 } GpWorld;
 
 /**
@@ -85,7 +94,9 @@ static inline double drand(void)
 
 GpProgram * gp_program_new(GpWorld *);
 GpProgram * gp_program_combine(GpWorld *, GpProgram *, GpProgram *);
+void gp_program_run(GpWorld *, GpProgram *);
 void gp_program_debug(GpProgram *);
+
 GpWorld * gp_world_new(void);
 void gp_world_add_op(GpWorld *, GpOperation);
 
