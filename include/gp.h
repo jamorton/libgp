@@ -35,12 +35,17 @@
 #define GP_CONSTANT_FUNC gen_rand32
 #endif
 
-typedef GP_TYPE gp_num;
+#ifndef GP_FITNESS_TYPE
+#define GP_FITNESS_TYPE uint
+#endif
+
+typedef GP_TYPE gp_num_t;
 typedef unsigned int uint;
+typedef GP_FITNESS_TYPE gp_fitness_t;
 
 typedef struct {
-	gp_num registers[GP_NUM_REGISTERS];
-	gp_num * inputs;;
+	gp_num_t registers[GP_NUM_REGISTERS];
+	gp_num_t * inputs;
 	uint ip;
 	void * data;
 } GpState;
@@ -56,7 +61,7 @@ typedef struct {
 	GpArgType type;
 	union {
 		uint reg;
-		gp_num num;
+		gp_num_t num;
 	} data;
 } GpArg;
 
@@ -71,12 +76,14 @@ typedef struct {
 typedef struct {
 	uint num_stmts;
 	GpStatement * stmts;
+	gp_fitness_t fitness;
 } GpProgram;
 
 typedef struct {
 	uint num_ops;
 	GpOperation * ops;
 	GpProgram * programs[GP_POPULATION_SIZE];
+	gp_fitness_t (*evaluator)(GpProgram *);
 } GpWorld;
 
 /**
@@ -97,12 +104,13 @@ static inline double drand(void)
 
 GpProgram * gp_program_new(GpWorld *);
 GpProgram * gp_program_combine(GpWorld *, GpProgram *, GpProgram *);
-GpState gp_program_run(GpWorld *, GpProgram *, gp_num[GP_NUM_INPUTS]);
+GpState gp_program_run(GpWorld *, GpProgram *, gp_num_t *);
 void gp_world_initialize(GpWorld *);
 
 void gp_program_debug(GpProgram *);
 
 GpWorld * gp_world_new(void);
 void gp_world_add_op(GpWorld *, GpOperation);
+void gp_world_evolve(GpWorld *, uint);
 
 #endif

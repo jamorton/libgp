@@ -42,7 +42,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 
 GpProgram * gp_program_new(GpWorld * world)
 {
-	uint i, j;
+	uint i;
 	GpProgram * program = new(GpProgram);
 	program->num_stmts = urand(GP_MIN_LENGTH, GP_MAX_LENGTH);
 	program->stmts = new_array(GpStatement, program->num_stmts);
@@ -111,22 +111,24 @@ void gp_program_debug(GpProgram * program)
 	}
 }
 
-GpState gp_program_run(GpWorld * word, GpProgram * program, gp_num * inputs)
+GpState gp_program_run(GpWorld * word, GpProgram * program, gp_num_t * inputs)
 {
 	uint i;
 	GpState state;
 	state.ip = 0;
-	for (i = 0; i < GP_NUM_REGISTERS; i++)
-		state.registers[i] = 0;
+	memset(state.registers, 0, GP_NUM_REGISTERS * sizeof(gp_num_t));
 	state.inputs = inputs;
 	while (state.ip < program->num_stmts)
 	{
 		GpStatement * stmt = &program->stmts[state.ip];
-		(stmt->op->func)(&state, stmt->args, &state.registers[stmt->output]);
+		(stmt->op->func)(&state, stmt->args, state.registers + stmt->output);
 		state.ip++;
 	}
 	return state;
 }
+
+
+/********* GpWorld *********/
 
 GpWorld * gp_world_new()
 {
@@ -154,6 +156,16 @@ void gp_world_add_op(GpWorld * world, GpOperation op)
 	world->num_ops++;
 }
 
+void gp_world_evolve(GpWorld * world, uint times)
+{
+	uint i;
+
+	for (i = 0; i < times; i++)
+	{
+		
+	}
+}
+
 int main(void)
 {
 	init_gen_rand(time(NULL));
@@ -162,12 +174,14 @@ int main(void)
 
 	gp_world_add_op(world, GP_OP(add));
 	gp_world_add_op(world, GP_OP(mul));
-
+	gp_world_add_op(world, GP_OP(eq));
+	gp_world_add_op(world, GP_OP(xor));
+	
 	gp_world_initialize(world);
 	
 	gp_program_debug(world->programs[0]);
 
-	gp_num inp[] = {1};
+	gp_num_t inp[] = {1};
 	GpState k = gp_program_run(world, world->programs[0], inp);
 
 	printf("%u\n", k.registers[0]);
