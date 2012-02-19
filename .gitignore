@@ -1,3 +1,5 @@
 .DS_Store
 gp
 .waf-*
+.lock-waf*
+build
