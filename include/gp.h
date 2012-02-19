@@ -6,7 +6,7 @@
 
 #define HAVE_SSE2
 #define MEXP 216091
-#include "SFMT/SFMT.c"
+#include "SFMT.c"
 
 #define GP_NUM_REGISTERS 2
 #define GP_MIN_LENGTH 1
@@ -28,8 +28,21 @@ typedef void (*GpOperationFunc)(GpState *, gp_num **, gp_num *);
 
 #include "ops.h"
 
+typedef enum {
+	GP_ARG_REGISTER,
+	GP_ARG_CONSTANT
+} GpArgType;
+
 typedef struct {
-	gp_num * args[GP_NUM_REGISTERS];
+	GpArgType type;
+	union {
+		uint reg;
+		gp_num constant;
+	} data;
+} GpArg;
+
+typedef struct {
+	gp_num  args[GP_NUM_REGISTERS];
 	GpOperation * op;
 } GpStatement;
 
@@ -56,7 +69,7 @@ static inline uint urand(uint low, uint high)
 }
 
 GpProgram * gp_program_new(GpWorld *);
-GpWorld * gp_world_new();
+GpWorld * gp_world_new(void);
 void gp_world_add_op(GpWorld *, GpOperation);
 void gp_program_str(GpProgram *);
 

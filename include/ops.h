@@ -2,7 +2,7 @@
 #define GP_OPERATION(name, na) \
 	static const uint gp_op_##name##_nargs = na; \
 	static const char * gp_op_##name##_name = #name; \
-	void gp_op_##name(GpState * state, gp_num ** args, gp_num * out)
+	static void gp_op_##name(GpState * state, gp_num ** args, gp_num * out)
 
 #define GP_Out    (*out)
 #define GP_Arg(x) (*(args[(x)]))

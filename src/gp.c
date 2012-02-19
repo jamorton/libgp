@@ -15,7 +15,6 @@ GpProgram * gp_program_new(GpWorld * world)
 	{
 		program->stmts[i].op = &world->ops[urand(0, world->num_ops)];
 	}
-	
 	return program;
 }
 
@@ -47,7 +46,7 @@ void gp_world_add_op(GpWorld * world, GpOperation op)
 	world->num_ops++;
 }
 
-int main()
+int main(void)
 {
 	init_gen_rand(time(NULL));
 	

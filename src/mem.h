@@ -18,7 +18,7 @@ static inline void * mem_realloc(void * ptr, size_t sz)
 	return realloc(ptr, sz);
 }
 
-static inline void * mem_free(void * ptr)
+static inline void mem_free(void * ptr)
 {
 	free(ptr);
 }
