@@ -8,7 +8,10 @@
 #define MEXP 216091
 #include "SFMT.c"
 
+#ifndef GP_NUM_REGISTERS
 #define GP_NUM_REGISTERS 2
+#endif
+
 #define GP_MIN_LENGTH 1
 #define GP_MAX_LENGTH 5
 
@@ -29,20 +32,23 @@ typedef void (*GpOperationFunc)(GpState *, gp_num **, gp_num *);
 #include "ops.h"
 
 typedef enum {
-	GP_ARG_REGISTER,
-	GP_ARG_CONSTANT
+	GP_ARG_REGISTER = 0,
+	GP_ARG_CONSTANT,
+	GP_ARG_INPUT,
+	GP_ARG_COUNT
 } GpArgType;
 
 typedef struct {
 	GpArgType type;
 	union {
 		uint reg;
-		gp_num constant;
+		gp_num num;
 	} data;
 } GpArg;
 
 typedef struct {
-	gp_num  args[GP_NUM_REGISTERS];
+	uint output;
+	GpArg args[GP_MAX_ARGS];
 	GpOperation * op;
 } GpStatement;
 
@@ -53,9 +59,9 @@ typedef struct {
 
 typedef struct {
 	uint num_ops;
+	uint num_inputs;
 	GpOperation * ops;
 } GpWorld;
-
 
 /**
  * Generates a random number between low and high - 1

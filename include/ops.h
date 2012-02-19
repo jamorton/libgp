@@ -15,6 +15,8 @@ typedef struct {
 
 #define GP_OP(name) ((GpOperation){ gp_op_##name##_nargs, gp_op_##name##_name, &gp_op_##name })
 
+#define GP_MAX_ARGS 2
+
 GP_OPERATION(add, 2)
 {
 	GP_Out = GP_Arg(0) + GP_Arg(1);
