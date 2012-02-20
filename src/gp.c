@@ -17,7 +17,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 	stmt.output = urand(0, GP_NUM_REGISTERS);
 	stmt.op = &world->ops[urand(0, world->num_ops)];
 
-	uint randopt = GP_NUM_INPUTS == 0 ? 2 : 3;
+	uint randopt = world->conf.num_inputs == 0 ? 2 : 3;
 
 	for (j = 0; j < stmt.op->num_args; j++)
 	{
@@ -33,7 +33,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 			break;
 		case 2:
 			stmt.args[j].type = GP_ARG_INPUT;
-			stmt.args[j].data.reg = urand(0, GP_NUM_INPUTS);
+			stmt.args[j].data.reg = urand(0, world->conf.num_inputs);
 			break;
 		}
 	}
@@ -44,7 +44,7 @@ GpProgram * gp_program_new(GpWorld * world)
 {
 	uint i;
 	GpProgram * program = new(GpProgram);
-	program->num_stmts = urand(GP_MIN_LENGTH, GP_MAX_LENGTH);
+	program->num_stmts = urand(world->conf.min_program_length, world->conf.max_program_length);
 	program->stmts = new_array(GpStatement, program->num_stmts);
 	for (i = 0; i < program->num_stmts; i++)
 		program->stmts[i] = gp_random_statement(world);
@@ -73,9 +73,9 @@ GpProgram * gp_program_combine(GpWorld * world, GpProgram * mom, GpProgram * dad
 	for (i = cp; i < mom->num_stmts; i++)
 		children[1].stmts[i] = mom->stmts[i];
 
-	while (drand() < GP_MUTATE_RATE)
+	while (drand() < world->conf.mutation_rate)
 		children[0].stmts[urand(0, children[0].num_stmts)] = gp_random_statement(world);
-	while (drand() < GP_MUTATE_RATE)
+	while (drand() < world->conf.mutation_rate)
 		children[1].stmts[urand(0, children[1].num_stmts)] = gp_random_statement(world);
 
 	return children;
@@ -135,13 +135,23 @@ GpWorld * gp_world_new()
 	GpWorld * world = new(GpWorld);
 	world->num_ops = 0;
 	world->ops = NULL;
+	world->programs = NULL;
+
+	world->conf.population_size = 100;
+	world->conf.num_inputs = 0;
+	world->conf.min_program_length = 1;
+	world->conf.max_program_length = 5;
+	world->conf.mutation_rate = 0.01;
+	world->conf.elite_rate = 0.05;
+
 	return world;
 }
 
 void gp_world_initialize(GpWorld * world)
 {
 	uint i;
-	for (i = 0; i < GP_POPULATION_SIZE; i++)
+	world->programs = new_array(GpProgram *, world->conf.population_size);
+	for (i = 0; i < world->conf.population_size; i++)
 		world->programs[i] = gp_program_new(world);
 }
 
@@ -156,18 +166,47 @@ void gp_world_add_op(GpWorld * world, GpOperation op)
 	world->num_ops++;
 }
 
-void gp_world_evolve(GpWorld * world, uint times)
+static int fitness_compare(const void * a, const void * b)
+{
+	const GpProgram * _a = *(const GpProgram **)a;
+	const GpProgram * _b = *(const GpProgram **)b;
+	if (_a->fitness > _b->fitness)
+		return 1;
+	else if (_a->fitness < _b->fitness)
+		return -1;
+	return 0;
+}
+
+static inline void gp_world_evolve_step(GpWorld * world)
 {
 	uint i;
-
-	for (i = 0; i < times; i++)
+	unsigned long long total_fitness = 0ULL;
+	for (i = 0; i < world->conf.population_size; i++)
 	{
-		
+		world->programs[i]->fitness = world->conf.evaluator(world->programs[i]);
+		total_fitness += world->programs[i]->fitness;
 	}
+
+	qsort(world->programs, world->conf.population_size, sizeof(GpProgram *), &fitness_compare);
+
+	
+	
+}
+
+void gp_world_evolve(GpWorld * world, uint times)
+{
+	while (times--)
+		gp_world_evolve_step(world);
+}
+
+static gp_fitness_t test_fit(GpProgram * program)
+{
+	return urand(0, 100000);
 }
 
 int main(void)
 {
+	uint i;
 	init_gen_rand(time(NULL));
 	
 	GpWorld * world = gp_world_new();
@@ -176,13 +215,11 @@ int main(void)
 	gp_world_add_op(world, GP_OP(mul));
 	gp_world_add_op(world, GP_OP(eq));
 	gp_world_add_op(world, GP_OP(xor));
-	
+
+	world->conf.evaluator = &test_fit;
+
 	gp_world_initialize(world);
-	
-	gp_program_debug(world->programs[0]);
 
-	gp_num_t inp[] = {1};
-	GpState k = gp_program_run(world, world->programs[0], inp);
+	gp_world_evolve(world, 1);
 
-	printf("%u\n", k.registers[0]);
 }

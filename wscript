@@ -10,7 +10,7 @@ def s(str):
 
 CF_WARNINGS = s("-Wall -Wextra -Wpointer-arith -Wshadow -Wstrict-prototypes -Wmissing-prototypes -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
 
-CFLAGS = CF_WARNINGS + s("-std=c99")
+CFLAGS = CF_WARNINGS + s("-std=c99 -fnested-functions")
 
 CFLAGS_DEBUG = s("-DDEBUG -g")
 
