@@ -51,6 +51,12 @@ GpProgram * gp_program_new(GpWorld * world)
 	return program;
 }
 
+void gp_program_delete(GpProgram * program)
+{
+	delete(program->stmts);
+	delete(program);
+}
+
 GpProgram * gp_program_combine(GpWorld * world, GpProgram * mom, GpProgram * dad)
 {
 	uint i;
@@ -177,19 +183,49 @@ static int fitness_compare(const void * a, const void * b)
 	return 0;
 }
 
+static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
+{
+	ulong targ = lrand(0, total_fitness), cur = 0;
+	uint cur_idx = 0;
+	while (cur < targ)
+		cur += world->programs[cur_idx++]->fitness;
+	return world->programs[cur_idx - 1];
+}
+								   
 static inline void gp_world_evolve_step(GpWorld * world)
 {
 	uint i;
-	unsigned long long total_fitness = 0ULL;
-	for (i = 0; i < world->conf.population_size; i++)
+	ulong total_fitness = 0ULL;
+	uint popsize = world->conf.population_size;
+	
+	for (i = 0; i < popsize; i++)
 	{
 		world->programs[i]->fitness = world->conf.evaluator(world->programs[i]);
 		total_fitness += world->programs[i]->fitness;
 	}
 
-	qsort(world->programs, world->conf.population_size, sizeof(GpProgram *), &fitness_compare);
+	qsort(world->programs, popsize, sizeof(GpProgram *), &fitness_compare);
 
-	
+	GpProgram * new_programs[popsize];	
+	uint elites = (uint)(popsize * world->conf.elite_rate) & ~1; /* make it even */
+
+	for (i = 0; i < elites; i++)
+		new_programs[i] = world->programs[i];
+
+
+	for (i = elites; i < popsize; i += 2)
+	{
+		GpProgram * mom = roulette_select(world, total_fitness);
+		GpProgram * dad = roulette_select(world, total_fitness);
+
+		GpProgram * children = gp_program_combine(world, mom, dad);
+		new_programs[i]     = &children[0];
+		new_programs[i + 1] = &children[1];
+	}
+
+
+	for (i = elites; i < popsize; i++)
+		gp_program_delete(world->programs[i]);
 	
 }
 

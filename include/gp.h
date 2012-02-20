@@ -27,6 +27,7 @@
 typedef GP_TYPE gp_num_t;
 typedef unsigned int uint;
 typedef GP_FITNESS_TYPE gp_fitness_t;
+typedef unsigned long long ulong;
 
 typedef struct {
 	gp_num_t registers[GP_NUM_REGISTERS];
@@ -82,6 +83,7 @@ typedef struct {
 } GpWorld;
 
 GpProgram * gp_program_new      (GpWorld *);
+void        gp_program_delete   (GpProgram *);
 GpProgram * gp_program_combine  (GpWorld *, GpProgram *, GpProgram *);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
 void        gp_program_debug    (GpProgram *);
@@ -91,12 +93,11 @@ void        gp_world_initialize (GpWorld *);
 void        gp_world_add_op     (GpWorld *, GpOperation);
 void        gp_world_evolve     (GpWorld *, uint);
 
-/**
- * Generates a random number between low and high - 1
- *
- * @param low  lower bound (inclusive)
- * @param high upper bound (exclusive)
- */
+static inline ulong lrand(ulong low, ulong high)
+{
+	return ((ulong)gen_rand32() << 32 | (ulong)gen_rand32()) % (high - low) + low;
+}
+
 static inline uint urand(uint low, uint high)
 {
 	return gen_rand32() % (high - low) + low;
