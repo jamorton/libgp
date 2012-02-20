@@ -21,7 +21,7 @@
 #endif
 
 #ifndef GP_CONSTANT_FUNC
-#define GP_CONSTANT_FUNC gen_rand32
+#define GP_CONSTANT_FUNC gen_rand64
 #endif
 
 typedef GP_TYPE gp_num_t;
@@ -84,7 +84,7 @@ typedef struct {
 
 GpProgram * gp_program_new      (GpWorld *);
 void        gp_program_delete   (GpProgram *);
-GpProgram * gp_program_combine  (GpWorld *, GpProgram *, GpProgram *);
+void        gp_program_combine  (GpWorld *, GpProgram *, GpProgram *, GpProgram **);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
 void        gp_program_debug    (GpProgram *);
 
@@ -95,17 +95,18 @@ void        gp_world_evolve     (GpWorld *, uint);
 
 static inline ulong lrand(ulong low, ulong high)
 {
-	return ((ulong)gen_rand32() << 32 | (ulong)gen_rand32()) % (high - low) + low;
+	return gen_rand64() % (high - low) + low;
+	/* return ((ulong)gen_rand32() << 32 | (ulong)gen_rand32()) % (high - low) + low; */
 }
 
 static inline uint urand(uint low, uint high)
 {
-	return gen_rand32() % (high - low) + low;
+	return ((uint)gen_rand64()) % (high - low) + low;
 }
 
 static inline double drand(void)
 {
-	return (double)(gen_rand32()) / UINT32_MAX;
+	return (double)(gen_rand64()) / UINT64_MAX;
 }
 
 #endif

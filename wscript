@@ -12,7 +12,7 @@ CF_WARNINGS = s("-Wall -Wextra -Wpointer-arith -Wshadow -Wstrict-prototypes -Wmi
 
 CFLAGS = CF_WARNINGS + s("-std=c99 -fnested-functions")
 
-CFLAGS_DEBUG = s("-DDEBUG -g")
+CFLAGS_DEBUG = s("-DDEBUG -O3")
 
 def options(opt):
 	opt.load("compiler_c")
@@ -27,13 +27,13 @@ def build(bld):
 	if bld.options.debug:
 		final_flags += CFLAGS_DEBUG
 		
-	bld.program(
+   	bld.program(
 		source   = "src/gp.c",
 		target   = "gp",
 		includes = "include deps/SFMT",
 		cflags   = final_flags
 	)
-
+	
 def test(ctx):
 	print ""
 	ctx.exec_command("build/gp")
