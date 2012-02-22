@@ -26,5 +26,10 @@ static inline double drand(void)
 	return (double)(gen_rand32()) / UINT32_MAX;
 }
 
+static inline float frand(void)
+{
+	return (float)(gen_rand32()) / UINT32_MAX;
+}
+
 
 #endif

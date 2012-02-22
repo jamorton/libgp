@@ -51,10 +51,10 @@ GP_OPERATION(mul, 2)
 
 GP_OPERATION(binnot, 1)
 {
-	GP_Out = ~GP_Arg(0);
+	GP_Out = (gp_num_t)(~((uint)GP_Arg(0)));
 }
 
 GP_OPERATION(xor, 2)
 {
-	GP_Out = GP_Arg(0) ^ GP_Arg(1);
+	GP_Out = (gp_num_t)((uint)GP_Arg(0) ^ (uint)GP_Arg(1));
 }

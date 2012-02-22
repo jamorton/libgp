@@ -27,7 +27,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 			break;
 		case 1:
 			stmt.args[j].type = GP_ARG_CONSTANT;
-			stmt.args[j].data.num = GP_CONSTANT_FUNC();
+			stmt.args[j].data.num = world->conf.constant_func();;
 			break;
 		case 2:
 			stmt.args[j].type = GP_ARG_INPUT;
@@ -99,13 +99,13 @@ void gp_program_debug(GpProgram * program)
 			switch (stmt->args[j].type)
 			{
 			case GP_ARG_REGISTER:
-				printf("r%d", stmt->args[j].data.reg);
+				printf("r%u", stmt->args[j].data.reg);
 				break;
 			case GP_ARG_CONSTANT:
-				printf("%u", stmt->args[j].data.num);
+				printf("%f", stmt->args[j].data.num);
 				break;
 			case GP_ARG_INPUT:
-				printf("i%u", stmt->args[j].data.num);
+				printf("i%u", stmt->args[j].data.reg);
 				break;
 			default:
 				printf("<unknown>");
@@ -150,18 +150,25 @@ GpWorld * gp_world_new()
 	world->ops = NULL;
 	world->programs = NULL;
 
-	world->conf.population_size = 10000;
-	world->conf.num_inputs = 0;
+	world->conf.population_size    = 10000;
+	world->conf.num_inputs         = 0;
 	world->conf.min_program_length = 1;
 	world->conf.max_program_length = 5;
-	world->conf.mutation_rate = 0.01;
-	world->conf.elite_rate = 0.05;
+	world->conf.mutation_rate      = 0.01;
+	world->conf.elite_rate         = 0.05;
+	world->conf.evaluator          = NULL;
+	world->conf.constant_func      = NULL;
 
 	return world;
 }
 
 void gp_world_initialize(GpWorld * world)
 {
+	if (world->conf.constant_func == NULL || world->conf.evaluator == NULL)
+	{
+		printf("ERROR: constant_func or evaluator in world configuration not set prior to initialize\n");
+		abort();
+	}
 	uint i;
 	world->programs = new_array(GpProgram, world->conf.population_size);
 	for (i = 0; i < world->conf.population_size; i++)
@@ -179,6 +186,8 @@ void gp_world_add_op(GpWorld * world, GpOperation op)
 	world->num_ops++;
 }
 
+/* roulette selection might be ideal, but unfortunately it introduces O(n^2)
+   performance complexity into the evolve step loop */
 static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
 {
 	ulong targ = lrand(0, total_fitness);
@@ -190,6 +199,7 @@ static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
 	return world->programs + (cur_idx - 1);
 }
 
+/* our second best selection method keeps an evolution step at only O(n) */
 static inline GpProgram * tournament_select(GpWorld * world)
 {
 	const uint k = world->conf.population_size;

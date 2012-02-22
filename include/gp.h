@@ -9,15 +9,11 @@
 #endif
 
 #ifndef GP_TYPE
-  #define GP_TYPE unsigned int
+  #define GP_TYPE float
 #endif
 
 #ifndef GP_FITNESS_TYPE
-  #define GP_FITNESS_TYPE uint
-#endif
-
-#ifndef GP_CONSTANT_FUNC
-  #define GP_CONSTANT_FUNC gen_rand32
+  #define GP_FITNESS_TYPE double
 #endif
 
 typedef GP_TYPE gp_num_t;
@@ -58,18 +54,18 @@ typedef struct {
 } GpStatement;
 
 typedef struct {
+	gp_fitness_t fitness;
 	uint num_stmts;
 	GpStatement * stmts;
-	gp_fitness_t fitness;
 } GpProgram;
 
 typedef struct {
+	GpProgram * programs;
 	uint num_ops;
 	GpOperation * ops;
-	GpProgram * programs;
-
 	struct {
 		gp_fitness_t (*evaluator)(GpProgram *);
+		gp_num_t (*constant_func)(void);
 		uint population_size;
 		uint num_inputs;
 		uint min_program_length;
@@ -77,7 +73,6 @@ typedef struct {
 		double mutation_rate;
 		double elite_rate;
 	} conf;
-	
 } GpWorld;
 
 GpProgram * gp_program_new      (GpWorld *);

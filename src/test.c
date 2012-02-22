@@ -3,7 +3,12 @@
 
 static gp_fitness_t test_fit(GpProgram * program)
 {
-	return urand(0, 100000);
+	return drand();
+}
+
+static gp_num_t constant_func(void)
+{
+	return urand(0, 10000);
 }
 
 int main(void)
@@ -16,6 +21,7 @@ int main(void)
 	gp_world_add_op(world, GP_OP(eq));
 	gp_world_add_op(world, GP_OP(xor));
 
+	world->conf.constant_func = &constant_func;
 	world->conf.evaluator = &test_fit;
 	world->conf.population_size = 20000;
 
