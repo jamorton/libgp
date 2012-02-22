@@ -1,4 +1,7 @@
 cgp is a simple but fast linear genetic programming library written in C.
-Its aim is to make it easy to construct and test genetic programming problems in an efficient manner.
+cgp makes it easy to construct and test genetic programming problems efficiently.
+
+(On a single core of my i7, it can do 1,000 evolution steps for a population of 20,000 in 5 seconds.
+The goal from now on is to keep introducing features while maintaining that performance)
 
 copyright 2012 Jon 'Jonanin' Morton
