@@ -3,6 +3,8 @@
 #include "mem.h"
 #include "iqsort.h"
 
+#include "SFMT/SFMT.c"
+
 #include <time.h>
 
 static GpStatement gp_random_statement(GpWorld * world)
@@ -43,7 +45,6 @@ static void gp_program_init(GpWorld * world, GpProgram * program)
 	program->stmts = new_array(GpStatement, program->num_stmts);
 	for (i = 0; i < program->num_stmts; i++)
 		program->stmts[i] = gp_random_statement(world);
-	return program;
 }
 
 GpProgram * gp_program_new(GpWorld * world)
@@ -56,35 +57,34 @@ GpProgram * gp_program_new(GpWorld * world)
 void gp_program_delete(GpProgram * program)
 {
 	delete(program->stmts);
+	delete(program);
 }
 
-void gp_program_combine(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProgram ** children)
+void gp_program_combine(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProgram * children)
 {
 	uint i;
 	uint cp = urand(0, umin(mom->num_stmts, dad->num_stmts) + 1);
 
-	children[0] = new(GpProgram);
-	children[1] = new(GpProgram);
-	children[0]->num_stmts = dad->num_stmts;
-	children[1]->num_stmts = mom->num_stmts;
-	children[0]->stmts = new_array(GpStatement, children[0]->num_stmts);
-	children[1]->stmts = new_array(GpStatement, children[1]->num_stmts);
+	children[0].num_stmts = dad->num_stmts;
+	children[1].num_stmts = mom->num_stmts;
+	children[0].stmts = new_array(GpStatement, children[0].num_stmts);
+	children[1].stmts = new_array(GpStatement, children[1].num_stmts);
 	
 	for (i = 0; i < cp; i++)
 	{
-		children[0]->stmts[i] = mom->stmts[i];
-		children[1]->stmts[i] = dad->stmts[i];
+		children[0].stmts[i] = mom->stmts[i];
+		children[1].stmts[i] = dad->stmts[i];
 	}
 
 	for (i = cp; i < dad->num_stmts; i++)
-		children[0]->stmts[i] = dad->stmts[i];
+		children[0].stmts[i] = dad->stmts[i];
 	for (i = cp; i < mom->num_stmts; i++)
-		children[1]->stmts[i] = mom->stmts[i];
+		children[1].stmts[i] = mom->stmts[i];
 
 	while (drand() < world->conf.mutation_rate)
-		children[0]->stmts[urand(0, children[0]->num_stmts)] = gp_random_statement(world);
+		children[0].stmts[urand(0, children[0].num_stmts)] = gp_random_statement(world);
 	while (drand() < world->conf.mutation_rate)
-		children[1]->stmts[urand(0, children[1]->num_stmts)] = gp_random_statement(world);
+		children[1].stmts[urand(0, children[1].num_stmts)] = gp_random_statement(world);
 }
 
 void gp_program_debug(GpProgram * program)
@@ -126,7 +126,7 @@ GpState gp_program_run(GpWorld * word, GpProgram * program, gp_num_t * inputs)
 	state.inputs = inputs;
 	while (state.ip < program->num_stmts)
 	{
-		GpStatement * stmt = &program->stmts[state.ip];
+		GpStatement * stmt = program->stmts + state.ip;
 		(stmt->op->func)(&state, stmt->args, state.registers + stmt->output);
 		state.ip++;
 	}
@@ -165,7 +165,7 @@ void gp_world_initialize(GpWorld * world)
 	uint i;
 	world->programs = new_array(GpProgram, world->conf.population_size);
 	for (i = 0; i < world->conf.population_size; i++)
-		world->programs[i] = gp_program_new(world);
+		gp_program_init(world, world->programs + i);
 }
 
 void gp_world_add_op(GpWorld * world, GpOperation op)
@@ -218,20 +218,18 @@ static inline void gp_world_evolve_step(GpWorld * world)
 	}
 
 	uint i;
-	ulong total_fitness = 0ULL;
 	uint popsize = world->conf.population_size;
 	
 	for (i = 0; i < popsize; i++)
 	{
-		world->programs[i]->fitness = world->conf.evaluator(world->programs[i]);
-		total_fitness += world->programs[i]->fitness;
+		world->programs[i].fitness = world->conf.evaluator(world->programs + i);
 	}
 
-#define _CMP(a,b) ((*a)->fitness > (*b)->fitness)
-	QSORT(GpProgram *, world->programs, popsize, _CMP);
+#define _CMP(a,b) (a->fitness > b->fitness)
+	QSORT(GpProgram, world->programs, popsize, _CMP);
 #undef _CMP
 
-	GpProgram * new_programs[popsize];
+	GpProgram new_programs[popsize];
 	/* make elite rate even so the two-children-per-loop thing below works out */
 	uint elites = (uint)(popsize * world->conf.elite_rate) & ~1;
 
@@ -243,16 +241,13 @@ static inline void gp_world_evolve_step(GpWorld * world)
 		GpProgram * mom = tournament_select(world);
 		GpProgram * dad = tournament_select(world);
 
-		GpProgram * children[2];
-		gp_program_combine(world, mom, dad, children);
-		new_programs[i]     = children[0];
-		new_programs[i + 1] = children[1];
+		gp_program_combine(world, mom, dad, new_programs + i);
 	}
 
 	for (i = elites; i < popsize; i++)
-		gp_program_delete(world->programs[i]);
+		delete(world->programs[i].stmts);
 
-	memcpy(world->programs, new_programs, sizeof(GpProgram *) * popsize);
+	memcpy(world->programs, new_programs, sizeof(GpProgram) * popsize);
 }
 
 void gp_world_evolve(GpWorld * world, uint times)

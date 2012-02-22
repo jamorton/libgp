@@ -17,7 +17,7 @@
 #endif
 
 #ifndef GP_CONSTANT_FUNC
-  #define GP_CONSTANT_FUNC gen_rand64
+  #define GP_CONSTANT_FUNC gen_rand32
 #endif
 
 typedef GP_TYPE gp_num_t;
@@ -82,7 +82,7 @@ typedef struct {
 
 GpProgram * gp_program_new      (GpWorld *);
 void        gp_program_delete   (GpProgram *);
-void        gp_program_combine  (GpWorld *, GpProgram *, GpProgram *, GpProgram **);
+void        gp_program_combine  (GpWorld *, GpProgram *, GpProgram *, GpProgram *);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
 void        gp_program_debug    (GpProgram *);
 

@@ -4,7 +4,7 @@
 
 #define HAVE_SSE2 1
 #define MEXP 19937
-#include "SFMT/SFMT.c"
+#include "SFMT/SFMT.h"
 
 static inline uint umin(uint a, uint b)
 {
@@ -23,7 +23,7 @@ static inline uint urand(uint low, uint high)
 
 static inline double drand(void)
 {
-	return (double)(gen_rand64()) / UINT64_MAX;
+	return (double)(gen_rand32()) / UINT32_MAX;
 }
 
 

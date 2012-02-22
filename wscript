@@ -19,7 +19,7 @@ CF_WARNINGS = s("""
 
 CFLAGS = CF_WARNINGS + s("-std=c99 -O3")
 
-CFLAGS_DEBUG = s("-DDEBUG")
+CFLAGS_DEBUG = s("-DDEBUG -g")
 
 
 def options(opt):
@@ -52,5 +52,5 @@ def build(bld):
 	
 def test(ctx):
 	print ""
-	ctx.exec_command("build/gp")
+	ctx.exec_command("build/gptest")
 	print ""

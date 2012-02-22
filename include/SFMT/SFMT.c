@@ -379,9 +379,11 @@ static void period_certification(void) {
  * The string shows the word size, the Mersenne exponent,
  * and all parameters of this generator.
  */
+
 const char *get_idstring(void) {
     return IDSTR;
 }
+
 
 /**
  * This function returns the minimum size of array used for \b
