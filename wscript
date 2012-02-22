@@ -8,8 +8,6 @@ out = "build"
 def s(str):
 	return str.split()
 
-
-
 CF_WARNINGS = s("""
   -Wall -Wextra -Wpointer-arith -Wshadow
   -Wstrict-prototypes -Wmissing-prototypes
@@ -20,7 +18,6 @@ CF_WARNINGS = s("""
 CFLAGS = CF_WARNINGS + s("-std=c99 -O3")
 
 CFLAGS_DEBUG = s("-DDEBUG -g")
-
 
 def options(opt):
 	opt.load("compiler_c")
@@ -35,15 +32,17 @@ def build(bld):
 	if bld.options.debug:
 		final_flags += CFLAGS_DEBUG
 
+	"""
    	bld.stlib(
 		source   = "src/gp.c",
 		target   = "libgp",
 		includes = "include",
 		cflags   = final_flags
 	)
+	"""
 
 	bld.program(
-		source ="src/test.c",
+		source ="src/gp.c src/test.c",
 		target="gptest",
 		use="libgp",
 		includes = "include",
@@ -51,6 +50,6 @@ def build(bld):
 	)
 	
 def test(ctx):
-	print ""
-	ctx.exec_command("build/gptest")
+	print "Testing and timing gp..."
+	ctx.exec_command("time build/gptest")
 	print ""
