@@ -5,11 +5,6 @@
 
 #include <time.h>
 
-static inline uint umin(uint a, uint b)
-{
-	return a < b ? a : b;
-}
-
 static GpStatement gp_random_statement(GpWorld * world)
 {
 	uint j;
@@ -41,10 +36,9 @@ static GpStatement gp_random_statement(GpWorld * world)
 	return stmt;
 }
 
-GpProgram * gp_program_new(GpWorld * world)
+static void gp_program_init(GpWorld * world, GpProgram * program)
 {
 	uint i;
-	GpProgram * program = new(GpProgram);
 	program->num_stmts = urand(world->conf.min_program_length, world->conf.max_program_length);
 	program->stmts = new_array(GpStatement, program->num_stmts);
 	for (i = 0; i < program->num_stmts; i++)
@@ -52,10 +46,16 @@ GpProgram * gp_program_new(GpWorld * world)
 	return program;
 }
 
+GpProgram * gp_program_new(GpWorld * world)
+{
+	GpProgram * program = new(GpProgram);
+	gp_program_init(world, program);
+	return program;
+}
+
 void gp_program_delete(GpProgram * program)
 {
 	delete(program->stmts);
-	delete(program);
 }
 
 void gp_program_combine(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProgram ** children)
@@ -136,8 +136,15 @@ GpState gp_program_run(GpWorld * word, GpProgram * program, gp_num_t * inputs)
 
 /********* GpWorld *********/
 
+static char gp_has_init = 0;
+
 GpWorld * gp_world_new()
 {
+	if (!gp_has_init)
+	{
+		init_gen_rand(time(NULL));
+		gp_has_init = 1;
+	}
 	GpWorld * world = new(GpWorld);
 	world->num_ops = 0;
 	world->ops = NULL;
@@ -156,7 +163,7 @@ GpWorld * gp_world_new()
 void gp_world_initialize(GpWorld * world)
 {
 	uint i;
-	world->programs = new_array(GpProgram *, world->conf.population_size);
+	world->programs = new_array(GpProgram, world->conf.population_size);
 	for (i = 0; i < world->conf.population_size; i++)
 		world->programs[i] = gp_program_new(world);
 }
@@ -179,18 +186,18 @@ static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
 	uint cur_idx = 0;
 	
 	while (cur < targ)
-		cur += world->programs[cur_idx++]->fitness;
-	return world->programs[cur_idx - 1];
+		cur += world->programs[cur_idx++].fitness;
+	return world->programs + (cur_idx - 1);
 }
 
 static inline GpProgram * tournament_select(GpWorld * world)
 {
 	const uint k = world->conf.population_size;
 
-	GpProgram * p1 = world->programs[urand(0, k)];
-	GpProgram * p2 = world->programs[urand(0, k)];
-	GpProgram * p3 = world->programs[urand(0, k)];
-	GpProgram * p4 = world->programs[urand(0, k)];
+	GpProgram * p1 = world->programs + urand(0, k);
+	GpProgram * p2 = world->programs + urand(0, k);
+	GpProgram * p3 = world->programs + urand(0, k);
+	GpProgram * p4 = world->programs + urand(0, k);
 
 	uint most = p1->fitness;
 	GpProgram * most_prog = p1;
@@ -201,8 +208,6 @@ static inline GpProgram * tournament_select(GpWorld * world)
 
 	return most_prog;
 }
-
-
 
 static inline void gp_world_evolve_step(GpWorld * world)
 {
@@ -222,7 +227,7 @@ static inline void gp_world_evolve_step(GpWorld * world)
 		total_fitness += world->programs[i]->fitness;
 	}
 
-#define _CMP(a,b) ((**a).fitness > (**b).fitness)
+#define _CMP(a,b) ((*a)->fitness > (*b)->fitness)
 	QSORT(GpProgram *, world->programs, popsize, _CMP);
 #undef _CMP
 
@@ -255,29 +260,3 @@ void gp_world_evolve(GpWorld * world, uint times)
 	while (times--)
 		gp_world_evolve_step(world);
 }
-
-static gp_fitness_t test_fit(GpProgram * program)
-{
-	return urand(0, 100000);
-}
-
-int main(void)
-{
-	uint i;
-	init_gen_rand(time(NULL));
-	
-	GpWorld * world = gp_world_new();
-
-	gp_world_add_op(world, GP_OP(add));
-	gp_world_add_op(world, GP_OP(mul));
-	gp_world_add_op(world, GP_OP(eq));
-	gp_world_add_op(world, GP_OP(xor));
-
-	world->conf.evaluator = &test_fit;
-	world->conf.population_size = 10000;
-
-	gp_world_initialize(world);
-
-	gp_world_evolve(world, 1000);
-}
-
