@@ -27,7 +27,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 			break;
 		case 1:
 			stmt.args[j].type = GP_ARG_CONSTANT;
-			stmt.args[j].data.num = world->conf.constant_func();;
+			stmt.args[j].data.num = world->conf.constant_func();
 			break;
 		case 2:
 			stmt.args[j].type = GP_ARG_INPUT;
