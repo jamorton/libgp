@@ -4,27 +4,23 @@
 
 #include <stdint.h>
 
-#ifndef GP_NUM_REGISTERS
-  #define GP_NUM_REGISTERS 2
+#ifndef GP_MAX_REGISTERS
+  #define GP_MAX_REGISTERS 5
 #endif
 
 #ifndef GP_TYPE
   #define GP_TYPE float
 #endif
 
-#ifndef GP_FITNESS_TYPE
-  #define GP_FITNESS_TYPE double
-#endif
-
 typedef GP_TYPE gp_num_t;
 typedef unsigned int uint;
-typedef GP_FITNESS_TYPE gp_fitness_t;
+typedef double gp_fitness_t;
 typedef unsigned long long ulong;
 
 #include "util.h"
 
 typedef struct {
-	gp_num_t registers[GP_NUM_REGISTERS];
+	gp_num_t registers[GP_MAX_REGISTERS];
 	gp_num_t * inputs;
 	uint ip;
 	void * data;
@@ -60,9 +56,11 @@ typedef struct {
 } GpProgram;
 
 typedef struct {
+
 	GpProgram * programs;
 	uint num_ops;
 	GpOperation * ops;
+
 	struct {
 		gp_fitness_t (*evaluator)(GpProgram *);
 		gp_num_t (*constant_func)(void);
@@ -70,9 +68,11 @@ typedef struct {
 		uint num_inputs;
 		uint min_program_length;
 		uint max_program_length;
+		uint num_registers;
 		double mutation_rate;
 		double elite_rate;
 	} conf;
+
 } GpWorld;
 
 GpProgram * gp_program_new      (GpWorld *);

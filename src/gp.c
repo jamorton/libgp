@@ -12,7 +12,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 	uint j;
 
 	GpStatement stmt;
-	stmt.output = urand(0, GP_NUM_REGISTERS);
+	stmt.output = urand(0, world->conf.num_registers);
 	stmt.op = &world->ops[urand(0, world->num_ops)];
 
 	uint randopt = world->conf.num_inputs == 0 ? 2 : 3;
@@ -23,7 +23,7 @@ static GpStatement gp_random_statement(GpWorld * world)
 		{
 		case 0:
 			stmt.args[j].type = GP_ARG_REGISTER;
-			stmt.args[j].data.reg = urand(0, GP_NUM_REGISTERS);
+			stmt.args[j].data.reg = urand(0, world->conf.num_registers);
 			break;
 		case 1:
 			stmt.args[j].type = GP_ARG_CONSTANT;
@@ -117,12 +117,11 @@ void gp_program_debug(GpProgram * program)
 	}
 }
 
-GpState gp_program_run(GpWorld * word, GpProgram * program, gp_num_t * inputs)
+GpState gp_program_run(GpWorld * world, GpProgram * program, gp_num_t * inputs)
 {
-	uint i;
 	GpState state;
 	state.ip = 0;
-	memset(state.registers, 0, GP_NUM_REGISTERS * sizeof(gp_num_t));
+	memset(state.registers, 0, world->conf.num_registers * sizeof(gp_num_t));
 	state.inputs = inputs;
 	while (state.ip < program->num_stmts)
 	{
@@ -151,6 +150,7 @@ GpWorld * gp_world_new()
 	world->programs = NULL;
 
 	world->conf.population_size    = 10000;
+	world->conf.num_registers      = 2;
 	world->conf.num_inputs         = 0;
 	world->conf.min_program_length = 1;
 	world->conf.max_program_length = 5;
@@ -169,6 +169,13 @@ void gp_world_initialize(GpWorld * world)
 		printf("ERROR: constant_func or evaluator in world configuration not set prior to initialize\n");
 		abort();
 	}
+
+	if (world->conf.num_registers > GP_MAX_REGISTERS)
+	{
+		printf("ERROR: num_registers is greater than GP_MAX_REGISTERS (%u)\n", GP_MAX_REGISTERS);
+		abort();
+	}
+	
 	uint i;
 	world->programs = new_array(GpProgram, world->conf.population_size);
 	for (i = 0; i < world->conf.population_size; i++)
