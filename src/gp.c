@@ -155,7 +155,7 @@ GpWorld * gp_world_new()
 	world->conf.min_program_length = 1;
 	world->conf.max_program_length = 5;
 	world->conf.mutation_rate      = 0.01;
-	world->conf.elite_rate         = 0.05;
+	world->conf.elite_rate         = 0.01;
 	world->conf.evaluator          = NULL;
 	world->conf.constant_func      = NULL;
 
@@ -213,15 +213,15 @@ static inline GpProgram * tournament_select(GpWorld * world)
 
 	GpProgram * p1 = world->programs + urand(0, k);
 	GpProgram * p2 = world->programs + urand(0, k);
-	GpProgram * p3 = world->programs + urand(0, k);
-	GpProgram * p4 = world->programs + urand(0, k);
+	//GpProgram * p3 = world->programs + urand(0, k);
+	//GpProgram * p4 = world->programs + urand(0, k);
 
 	uint most = p1->fitness;
 	GpProgram * most_prog = p1;
 
 	if (p2->fitness > most) { most = p2->fitness; most_prog = p2; }
-	if (p3->fitness > most) { most = p3->fitness; most_prog = p3; }
-	if (p4->fitness > most) { most = p4->fitness; most_prog = p4; }
+	//if (p3->fitness > most) { most = p3->fitness; most_prog = p3; }
+	//if (p4->fitness > most) { most = p4->fitness; most_prog = p4; }
 
 	return most_prog;
 }
@@ -236,17 +236,23 @@ static inline void gp_world_evolve_step(GpWorld * world)
 
 	uint i;
 	uint popsize = world->conf.population_size;
+	gp_fitness_t total_fitness = 0;
 	
 	for (i = 0; i < popsize; i++)
 	{
-		world->programs[i].fitness = world->conf.evaluator(world->programs + i);
+		world->programs[i].fitness = world->conf.evaluator(world, world->programs + i);
+		total_fitness += world->programs[i].fitness;
 	}
 
 #define _CMP(a,b) (a->fitness > b->fitness)
 	QSORT(GpProgram, world->programs, popsize, _CMP);
 #undef _CMP
 
+	world->data.avg_fitness = total_fitness / (gp_fitness_t)popsize;
+	world->data.best_fitness = world->programs[0].fitness;
+	
 	GpProgram new_programs[popsize];
+
 	/* make elite rate even so the two-children-per-loop thing below works out */
 	uint elites = (uint)(popsize * world->conf.elite_rate) & ~1;
 
@@ -265,6 +271,8 @@ static inline void gp_world_evolve_step(GpWorld * world)
 		delete(world->programs[i].stmts);
 
 	memcpy(world->programs, new_programs, sizeof(GpProgram) * popsize);
+
+
 }
 
 void gp_world_evolve(GpWorld * world, uint times)

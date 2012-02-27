@@ -1,4 +1,6 @@
 
+#include <math.h>
+
 typedef void (*GpOperationFunc)(GpState *, GpArg *, gp_num_t *);
 
 #define GP_OPERATION(name, na) \
@@ -44,10 +46,34 @@ GP_OPERATION(add, 2)
 	GP_Out = GP_Arg(0) + GP_Arg(1);
 }
 
+GP_OPERATION(sub, 2)
+{
+	GP_Out = GP_Arg(0) - GP_Arg(1);
+}
+
 GP_OPERATION(mul, 2)
 {
 	GP_Out = GP_Arg(0) * GP_Arg(1);
 }
+
+GP_OPERATION(div, 2)
+{
+	GP_Out = GP_Arg(0) / GP_Arg(1);
+}
+
+GP_OPERATION(abs, 1)
+{
+	GP_Out = fabs(GP_Arg(0));
+}
+
+GP_OPERATION(pow, 2)
+{
+	GP_Out = pow(GP_Arg(0), fmod(GP_Arg(1), 10.0));
+}
+
+
+
+// BITWISE FUNCTIONS
 
 GP_OPERATION(binnot, 1)
 {

@@ -55,14 +55,14 @@ typedef struct {
 	GpStatement * stmts;
 } GpProgram;
 
-typedef struct {
+typedef struct GpWorld {
 
 	GpProgram * programs;
 	uint num_ops;
 	GpOperation * ops;
 
 	struct {
-		gp_fitness_t (*evaluator)(GpProgram *);
+		gp_fitness_t (*evaluator)(struct GpWorld *, GpProgram *);
 		gp_num_t (*constant_func)(void);
 		uint population_size;
 		uint num_inputs;
@@ -72,6 +72,11 @@ typedef struct {
 		double mutation_rate;
 		double elite_rate;
 	} conf;
+
+	struct {
+		gp_fitness_t avg_fitness;
+		gp_fitness_t best_fitness;
+	} data;
 
 } GpWorld;
 
