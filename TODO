@@ -10,3 +10,9 @@
 [ ] Refactor ops.h to use just structs instead of global vars
 
 [ ] Add support for user run state data
+
+[ ] Optimize evolve step malloc/free of program statements
+
+[ ] Investigate cache usage and branch prediction performance
+
+[ ] The world init sequence is non-obvious and a bit verbose. Refactor.
