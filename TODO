@@ -4,6 +4,10 @@
     [ ] Threaded simulation
     [ ] Multiple populations / isolated worlds
 
+[ ] Performance:
+    [ ] Optimize evolve step malloc/free of program statements
+
+
 [ ] use one large initial malloc of num_registers * population_size,
     get rid of GP_MAX_REGISTERS
 
@@ -11,8 +15,8 @@
 
 [ ] Add support for user run state data
 
-[ ] Optimize evolve step malloc/free of program statements
-
 [ ] Investigate cache usage and branch prediction performance
 
 [ ] The world init sequence is non-obvious and a bit verbose. Refactor.
+
+[X] Standardize documentation and organize code (Docco?)

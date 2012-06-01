@@ -25,9 +25,9 @@ def options(opt):
 
 def configure(conf):
 	conf.load("compiler_c")
-	
+
 def build(bld):
-	
+
 	final_flags = CFLAGS
 	if bld.options.debug:
 		final_flags += CFLAGS_DEBUG
@@ -48,8 +48,9 @@ def build(bld):
 		includes = "include",
 		cflags = final_flags
 	)
-	
+
 def test(ctx):
 	print "Testing and timing gp..."
 	ctx.exec_command("time build/gptest")
 	print ""
+

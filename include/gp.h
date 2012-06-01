@@ -41,6 +41,7 @@ typedef struct {
 	} data;
 } GpArg;
 
+// This needs to be included exactly here
 #include "ops.h"
 
 typedef struct {
@@ -69,8 +70,8 @@ typedef struct GpWorld {
 		uint min_program_length;
 		uint max_program_length;
 		uint num_registers;
-		double mutation_rate;
-		double elite_rate;
+		double mutate_rate;
+        double crossover_rate;
 	} conf;
 
 	struct {
@@ -81,14 +82,19 @@ typedef struct GpWorld {
 } GpWorld;
 
 GpProgram * gp_program_new      (GpWorld *);
+void        gp_program_copy     (GpProgram *, GpProgram *);
 void        gp_program_delete   (GpProgram *);
-void        gp_program_combine  (GpWorld *, GpProgram *, GpProgram *, GpProgram *);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
 void        gp_program_debug    (GpProgram *);
 
-GpWorld *   gp_world_new        (void);
-void        gp_world_initialize (GpWorld *);
-void        gp_world_add_op     (GpWorld *, GpOperation);
-void        gp_world_evolve     (GpWorld *, uint);
+
+GpWorld *   gp_world_new         (void);
+void        gp_world_initialize  (GpWorld *);
+void        gp_world_add_op      (GpWorld *, GpOperation);
+void        gp_world_evolve      (GpWorld *, uint);
+uint        gp_world_evolve_secs (GpWorld *, uint);
+
+void        gp_mutate           (GpWorld *, GpProgram *);
+void        gp_cross_homologous (GpProgram *, GpProgram *, GpProgram *);
 
 #endif

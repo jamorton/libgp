@@ -71,8 +71,6 @@ GP_OPERATION(pow, 2)
 	GP_Out = pow(GP_Arg(0), fmod(GP_Arg(1), 10.0));
 }
 
-
-
 // BITWISE FUNCTIONS
 
 GP_OPERATION(binnot, 1)

@@ -1,4 +1,8 @@
 
+// **gp.c** contains most of cgp's main functionality, including
+// allocation and setup for the world and program structures, as well
+// as evolution logic, genetic selectors, and genetic  operators
+
 #include "gp.h"
 #include "mem.h"
 #include "iqsort.h"
@@ -7,6 +11,99 @@
 
 #include <time.h>
 
+//                 Init and Utility Functions
+// --------------------------------------------------------------
+
+// ### GpWorld  ###
+static void gp_program_init(GpWorld *, GpProgram *);
+static char gp_has_init = 0;
+
+// `gp_world_new` creates a new world with a default config.
+// After a world is created, custom configuration should be set and
+// the desired list of operations should be added with `gp_world_add_op`.
+GpWorld * gp_world_new()
+{
+	if (!gp_has_init)
+	{
+		init_gen_rand(time(NULL));
+		gp_has_init = 1;
+	}
+	GpWorld * world = new(GpWorld);
+	world->num_ops = 0;
+	world->ops = NULL;
+	world->programs = NULL;
+
+	// Configuration defaults. Override these before calling `gp_world_initialize`
+	world->conf.population_size    = 10000;
+	world->conf.num_registers      = 2;
+	world->conf.num_inputs         = 0;
+	world->conf.min_program_length = 1;
+	world->conf.max_program_length = 5;
+	world->conf.crossover_rate     = 0.95;
+	world->conf.mutate_rate        = 0.05;
+	world->conf.evaluator          = NULL;
+	world->conf.constant_func      = NULL;
+
+	return world;
+}
+
+static void init_err(const char * estr)
+{
+	printf("GP INIT ERROR: %s\n", estr);
+	abort();
+}
+
+// `gp_world_initialize` should be called after the world has been
+// created and completely configured. No configuration should be changed
+// after calling this.
+void gp_world_initialize(GpWorld * world)
+{
+	if (world->conf.constant_func == NULL || world->conf.evaluator == NULL)
+		init_err("constant_func or evaluator not defined");
+
+	if (world->conf.num_registers > GP_MAX_REGISTERS)
+		init_err("num_registers is greater than GP_MAX_REGISTERS");
+
+	if (world->conf.min_program_length < 3)
+		init_err("min_program_length must be 3 or greater");
+
+	if (world->conf.max_program_length < world->conf.min_program_length)
+		init_err("max_program_length cannot be greater than min_program_length");
+
+	if ((world->conf.population_size & 1) != 0)
+		init_err("population size must be an even number");
+
+	if (world->conf.mutate_rate + world->conf.crossover_rate > 1.0)
+		init_err("mutate_rate + crossover_rate cannot be greater than 1");
+
+	uint i;
+	world->programs = new_array(GpProgram, world->conf.population_size);
+	for (i = 0; i < world->conf.population_size; i++)
+		gp_program_init(world, world->programs + i);
+}
+
+// `gp_world_add_op` is used to  make an operation available for
+// use in programs. For example:
+//
+//     Gp_world_add_op(world, GP_OP(add));
+//     gp_world_add_op(world, GP_OP(sub));
+//
+// A list of builtin operators can be found in **ops.h**
+void gp_world_add_op(GpWorld * world, GpOperation op)
+{
+	if (world->num_ops == 0)
+		world->ops = new(GpOperation);
+	else
+		world->ops = realloc(world->ops, sizeof(GpOperation) * (world->num_ops + 1));
+
+	world->ops[world->num_ops] = op;
+	world->num_ops++;
+}
+
+// ### GpStatement  ###
+//
+// A statement is created as a random operation with random arguments.
+// Each argument can be a register, constant, or input.
 static GpStatement gp_random_statement(GpWorld * world)
 {
 	uint j;
@@ -38,10 +135,16 @@ static GpStatement gp_random_statement(GpWorld * world)
 	return stmt;
 }
 
+//
+// ### GpProgram  ###
+//
+// Create a program with a random length N and a sequence of N randomly
+// initialized statements
 static void gp_program_init(GpWorld * world, GpProgram * program)
 {
 	uint i;
-	program->num_stmts = urand(world->conf.min_program_length, world->conf.max_program_length);
+	program->num_stmts = urand(world->conf.min_program_length,
+							   world->conf.max_program_length);
 	program->stmts = new_array(GpStatement, program->num_stmts);
 	for (i = 0; i < program->num_stmts; i++)
 		program->stmts[i] = gp_random_statement(world);
@@ -54,39 +157,112 @@ GpProgram * gp_program_new(GpWorld * world)
 	return program;
 }
 
+void gp_program_copy(GpProgram * src, GpProgram * dst)
+{
+	dst->num_stmts = src->num_stmts;
+	dst->stmts = new_array(GpStatement, dst->num_stmts);
+	memcpy(dst->stmts, src->stmts, dst->num_stmts * sizeof(GpStatement));
+}
+
 void gp_program_delete(GpProgram * program)
 {
 	delete(program->stmts);
 	delete(program);
 }
 
-void gp_program_combine(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProgram * children)
+//                    Evolution Operations
+// --------------------------------------------------------------
+
+// ### Genetic Operators ####
+
+// Mutate an individual by randomly changing some of its instructions
+void gp_mutate(GpWorld * world, GpProgram * program)
 {
-	uint i;
-	uint cp = urand(0, umin(mom->num_stmts, dad->num_stmts) + 1);
-
-	children[0].num_stmts = dad->num_stmts;
-	children[1].num_stmts = mom->num_stmts;
-	children[0].stmts = new_array(GpStatement, children[0].num_stmts);
-	children[1].stmts = new_array(GpStatement, children[1].num_stmts);
-	
-	for (i = 0; i < cp; i++)
-	{
-		children[0].stmts[i] = mom->stmts[i];
-		children[1].stmts[i] = dad->stmts[i];
-	}
-
-	for (i = cp; i < dad->num_stmts; i++)
-		children[0].stmts[i] = dad->stmts[i];
-	for (i = cp; i < mom->num_stmts; i++)
-		children[1].stmts[i] = mom->stmts[i];
-
-	while (drand() < world->conf.mutation_rate)
-		children[0].stmts[urand(0, children[0].num_stmts)] = gp_random_statement(world);
-	while (drand() < world->conf.mutation_rate)
-		children[1].stmts[urand(0, children[1].num_stmts)] = gp_random_statement(world);
+	double percent = drand();
+	// prefer lower percents
+	percent = percent * percent;
+	uint len = (uint)(percent * program->num_stmts);
+	while (len--)
+		program->stmts[urand(0, program->num_stmts)] = gp_random_statement(world);
 }
 
+// Homologous crossover technique that maintains lengths, from discipulus.
+void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * children)
+{
+	uint i;
+	uint max = umin(mom->num_stmts, dad->num_stmts);
+	uint mid = max / 2 + 1;
+	uint cp1 = urand(1, mid);
+	uint cp2 = urand(mid, max);
+
+	children[0].num_stmts = mom->num_stmts;
+	children[1].num_stmts = dad->num_stmts;
+	children[0].stmts = new_array(GpStatement, children[0].num_stmts);
+	children[1].stmts = new_array(GpStatement, children[1].num_stmts);
+
+	GpStatement * stmts1 = children[0].stmts;
+	GpStatement * stmts2 = children[1].stmts;
+
+	for (i = 0; i < cp1; i++)
+	{
+		stmts1[i] = mom->stmts[i];
+		stmts2[i] = dad->stmts[i];
+	}
+
+	for (; i < cp2; i++)
+	{
+		stmts1[i] = dad->stmts[i];
+		stmts2[i] = mom->stmts[i];
+	}
+
+	for (i = cp2; i < mom->num_stmts; i++)
+		stmts1[i] = mom->stmts[i];
+	for (i = cp2; i < dad->num_stmts; i++)
+		stmts2[i] = dad->stmts[i];
+
+}
+
+// ### Selection Mechanisms ###
+
+// `roulette_select` selects over all individuals with a chance proportional
+// to their fitness.
+// Roulette selection might be ideal, but unfortunately it has O(n) time
+// complexity and thus makes the evolve step loop O(n^2)
+static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
+{
+	ulong targ = lrand(0, total_fitness);
+	ulong cur = 0;
+	uint cur_idx = 0;
+
+	while (cur < targ)
+		cur += world->programs[cur_idx++].fitness;
+	return world->programs + (cur_idx - 1);
+}
+
+// `tournament_select` uniformly selects a few individuals and returns the
+// one with the highest fitness. This method is only O(1).
+static inline GpProgram * tournament_select(GpWorld * world)
+{
+	const uint k = world->conf.population_size;
+
+	GpProgram * p1 = world->programs + urand(0, k);
+	GpProgram * p2 = world->programs + urand(0, k);
+	GpProgram * p3 = world->programs + urand(0, k);
+	GpProgram * p4 = world->programs + urand(0, k);
+
+	uint most = p1->fitness;
+	GpProgram * most_prog = p1;
+
+	if (p2->fitness > most) { most = p2->fitness; most_prog = p2; }
+	if (p3->fitness > most) { most = p3->fitness; most_prog = p3; }
+	if (p4->fitness > most) { most = p4->fitness; most_prog = p4; }
+
+	return most_prog;
+}
+
+// ### Runtime & Debug ####
+
+// Print out a program's instructions, one per line
 void gp_program_debug(GpProgram * program)
 {
 	uint i, j;
@@ -117,6 +293,8 @@ void gp_program_debug(GpProgram * program)
 	}
 }
 
+// `gp_program_run` will execute the supplied `program` given inputs
+// and return the final run state
 GpState gp_program_run(GpWorld * world, GpProgram * program, gp_num_t * inputs)
 {
 	GpState state;
@@ -132,151 +310,94 @@ GpState gp_program_run(GpWorld * world, GpProgram * program, gp_num_t * inputs)
 	return state;
 }
 
-
-/********* GpWorld *********/
-
-static char gp_has_init = 0;
-
-GpWorld * gp_world_new()
+// Sort programs based on their fitness
+static void gp_sort_programs(GpWorld * world)
 {
-	if (!gp_has_init)
-	{
-		init_gen_rand(time(NULL));
-		gp_has_init = 1;
-	}
-	GpWorld * world = new(GpWorld);
-	world->num_ops = 0;
-	world->ops = NULL;
-	world->programs = NULL;
-
-	world->conf.population_size    = 10000;
-	world->conf.num_registers      = 2;
-	world->conf.num_inputs         = 0;
-	world->conf.min_program_length = 1;
-	world->conf.max_program_length = 5;
-	world->conf.mutation_rate      = 0.01;
-	world->conf.elite_rate         = 0.01;
-	world->conf.evaluator          = NULL;
-	world->conf.constant_func      = NULL;
-
-	return world;
+	// This macro-style qsort avoids function calls and contains
+	// performance improvements over stdlib's qsort.
+#define _CMP(a,b) (a->fitness > b->fitness)
+	QSORT(GpProgram, world->programs, world->conf.population_size, _CMP);
+#undef _CMP
 }
 
-void gp_world_initialize(GpWorld * world)
-{
-	if (world->conf.constant_func == NULL || world->conf.evaluator == NULL)
-	{
-		printf("ERROR: constant_func or evaluator in world configuration not set prior to initialize\n");
-		abort();
-	}
 
-	if (world->conf.num_registers > GP_MAX_REGISTERS)
-	{
-		printf("ERROR: num_registers is greater than GP_MAX_REGISTERS (%u)\n", GP_MAX_REGISTERS);
-		abort();
-	}
-	
-	uint i;
-	world->programs = new_array(GpProgram, world->conf.population_size);
-	for (i = 0; i < world->conf.population_size; i++)
-		gp_program_init(world, world->programs + i);
-}
-
-void gp_world_add_op(GpWorld * world, GpOperation op)
-{
-	if (world->num_ops == 0)
-		world->ops = new(GpOperation);
-	else
-		world->ops = realloc(world->ops, sizeof(GpOperation) * (world->num_ops + 1));
-
-	world->ops[world->num_ops] = op;
-	world->num_ops++;
-}
-
-/* roulette selection might be ideal, but unfortunately it introduces O(n^2)
-   performance complexity into the evolve step loop */
-static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
-{
-	ulong targ = lrand(0, total_fitness);
-	ulong cur = 0;
-	uint cur_idx = 0;
-	
-	while (cur < targ)
-		cur += world->programs[cur_idx++].fitness;
-	return world->programs + (cur_idx - 1);
-}
-
-/* our second best selection method keeps an evolution step at only O(n) */
-static inline GpProgram * tournament_select(GpWorld * world)
-{
-	const uint k = world->conf.population_size;
-
-	GpProgram * p1 = world->programs + urand(0, k);
-	GpProgram * p2 = world->programs + urand(0, k);
-	//GpProgram * p3 = world->programs + urand(0, k);
-	//GpProgram * p4 = world->programs + urand(0, k);
-
-	uint most = p1->fitness;
-	GpProgram * most_prog = p1;
-
-	if (p2->fitness > most) { most = p2->fitness; most_prog = p2; }
-	//if (p3->fitness > most) { most = p3->fitness; most_prog = p3; }
-	//if (p4->fitness > most) { most = p4->fitness; most_prog = p4; }
-
-	return most_prog;
-}
-
+// `gp_world_evolve_step` runs one complete step of evolution. It
+// evaluates all individuals' fitnesses, selects some, and applies
+// genetic operators to create a new generation
 static inline void gp_world_evolve_step(GpWorld * world)
 {
-	if ((world->conf.population_size & 1) != 0)
-	{
-		printf("ERROR: population_size must be even");
-		abort();
-	}
-
 	uint i;
 	uint popsize = world->conf.population_size;
 	gp_fitness_t total_fitness = 0;
-	
+
 	for (i = 0; i < popsize; i++)
 	{
 		world->programs[i].fitness = world->conf.evaluator(world, world->programs + i);
 		total_fitness += world->programs[i].fitness;
 	}
 
-#define _CMP(a,b) (a->fitness > b->fitness)
-	QSORT(GpProgram, world->programs, popsize, _CMP);
-#undef _CMP
+	gp_sort_programs(world);
 
 	world->data.avg_fitness = total_fitness / (gp_fitness_t)popsize;
 	world->data.best_fitness = world->programs[0].fitness;
-	
+
 	GpProgram new_programs[popsize];
 
-	/* make elite rate even so the two-children-per-loop thing below works out */
-	uint elites = (uint)(popsize * world->conf.elite_rate) & ~1;
+	double cross_range = world->conf.crossover_rate;
+	double mutate_range = world->conf.mutate_rate + cross_range;
 
-	for (i = 0; i < elites; i++)
-		new_programs[i] = world->programs[i];
-
-	for (i = elites; i < popsize; i += 2)
+	for (i = 0; i < popsize; i += 2)
 	{
-		GpProgram * mom = tournament_select(world);
-		GpProgram * dad = tournament_select(world);
+		double opt = drand();
 
-		gp_program_combine(world, mom, dad, new_programs + i);
+		GpProgram * p1 = tournament_select(world);
+		GpProgram * p2 = tournament_select(world);
+
+		if (opt <= cross_range)
+		{
+			gp_cross_homologous(p1, p2, new_programs + i);
+		}
+		else if (opt <= mutate_range)
+		{
+			gp_program_copy(p1, new_programs + i);
+			gp_program_copy(p2, new_programs + i + 1);
+			gp_mutate(world, new_programs + i);
+			gp_mutate(world, new_programs + i + 1);
+
+		}
+		else
+		{
+			gp_program_copy(p1, new_programs + i);
+			gp_program_copy(p2, new_programs + i + 1);
+		}
 	}
 
-	for (i = elites; i < popsize; i++)
+	for (i = 0; i < popsize; i++)
 		delete(world->programs[i].stmts);
 
 	memcpy(world->programs, new_programs, sizeof(GpProgram) * popsize);
-
-
 }
 
+// Run `times` evolve steps
 void gp_world_evolve(GpWorld * world, uint times)
 {
 	while (times--)
 		gp_world_evolve_step(world);
+}
+
+uint gp_world_evolve_secs(GpWorld * world, uint nsecs)
+{
+	static const uint STEPS = 2;
+
+	const clock_t nclocks = nsecs * CLOCKS_PER_SEC;
+	clock_t start = clock();
+	uint times = 0;
+
+	while (clock() - start < nclocks)
+	{
+		gp_world_evolve(world, STEPS);
+		times += STEPS;
+	}
+
+	return times;
 }
