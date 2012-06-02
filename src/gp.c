@@ -157,6 +157,8 @@ GpProgram * gp_program_new(GpWorld * world)
 	return program;
 }
 
+// Copy all of one program's satements and data to another
+// **Does NOT** free `dst`'s stmts.
 void gp_program_copy(GpProgram * src, GpProgram * dst)
 {
 	dst->num_stmts = src->num_stmts;
@@ -170,6 +172,7 @@ void gp_program_delete(GpProgram * program)
 	delete(program);
 }
 
+// Test if two programs are _relatively_ equal
 int gp_program_equal(GpProgram * a, GpProgram * b)
 {
 	uint i;
@@ -403,10 +406,10 @@ void gp_world_evolve(GpWorld * world, uint times)
 		gp_world_evolve_step(world);
 }
 
+// Run evolve steps continuously until `nsecs` seconds has passed.
+// Returns the number of iterations taken.
 uint gp_world_evolve_secs(GpWorld * world, uint nsecs)
 {
-	static const uint STEPS = 1;
-
 	const clock_t nclocks = nsecs * CLOCKS_PER_SEC;
 	clock_t start = clock();
 	uint times = 0;
@@ -414,7 +417,7 @@ uint gp_world_evolve_secs(GpWorld * world, uint nsecs)
 	while (clock() - start < nclocks)
 	{
 		gp_world_evolve_step(world);
-		times += STEPS;
+		times++;
 	}
 
 	return times;
