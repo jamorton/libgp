@@ -2,7 +2,7 @@
 [ ] Scalability
     [ ] Thread Safety
     [ ] Multihreaded simulation
-    [ ] Multiple populations / worlds (migration, etc)
+    [ ] Multiple populations / worlds (migration, coevolution, etc)
 
 [ ] Performance:
     [ ] Optimize evolve step malloc/free of program statements
@@ -10,12 +10,18 @@
 	[ ] use one large initial malloc of num_registers * population_size,
    	    get rid of GP_MAX_REGISTERS
 
-[ ] Investigate how to test different gp configurations / operation sets
-
 [ ] Refactor ops.h to use just structs instead of global vars
 
-[ ] Add support for user run state data
+[ ] Add support for user run state/world data
 
 [ ] The world init sequence is non-obvious and a bit verbose. Refactor.
 
 [X] Standardize documentation and organize code (Docco?)
+
+[ ] Test framework
+    [ ] comparing different configurations / operation sets
+	[ ] performance testing
+	[ ] cgp examples
+	[ ] benchmarking iterations to solve a problem
+
+[ ] Doc: include custom docco.js with c language, and use github flavored markdown
