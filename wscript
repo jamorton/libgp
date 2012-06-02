@@ -54,3 +54,7 @@ def test(ctx):
 	ctx.exec_command("time build/gptest")
 	print ""
 
+def doc(ctx):
+	print "Generating documentation..."
+	ctx.exec_command("docco src/gp.c")
+	print ""

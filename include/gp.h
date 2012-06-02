@@ -84,6 +84,7 @@ typedef struct GpWorld {
 GpProgram * gp_program_new      (GpWorld *);
 void        gp_program_copy     (GpProgram *, GpProgram *);
 void        gp_program_delete   (GpProgram *);
+int         gp_program_equal    (GpProgram *, GpProgram *);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
 void        gp_program_debug    (GpProgram *);
 

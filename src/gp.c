@@ -39,8 +39,8 @@ GpWorld * gp_world_new()
 	world->conf.num_inputs         = 0;
 	world->conf.min_program_length = 1;
 	world->conf.max_program_length = 5;
-	world->conf.crossover_rate     = 0.95;
-	world->conf.mutate_rate        = 0.05;
+	world->conf.crossover_rate     = 0.90;
+	world->conf.mutate_rate        = 0.10;
 	world->conf.evaluator          = NULL;
 	world->conf.constant_func      = NULL;
 
@@ -170,6 +170,25 @@ void gp_program_delete(GpProgram * program)
 	delete(program);
 }
 
+int gp_program_equal(GpProgram * a, GpProgram * b)
+{
+	uint i;
+
+	if (a->num_stmts != b->num_stmts)
+		return 0;
+
+	for (i = 0; i < a->num_stmts; i++)
+	{
+		if (a->stmts[i].op != b->stmts[i].op)
+			return 0;
+
+		if (a->stmts[i].output != b->stmts[i].output)
+			return 0;
+	}
+
+	return 1;
+}
+
 //                    Evolution Operations
 // --------------------------------------------------------------
 
@@ -180,7 +199,7 @@ void gp_mutate(GpWorld * world, GpProgram * program)
 {
 	double percent = drand();
 	// prefer lower percents
-	percent = percent * percent;
+	//percent = percent * percent;
 	uint len = (uint)(percent * program->num_stmts);
 	while (len--)
 		program->stmts[urand(0, program->num_stmts)] = gp_random_statement(world);
@@ -191,9 +210,8 @@ void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * children)
 {
 	uint i;
 	uint max = umin(mom->num_stmts, dad->num_stmts);
-	uint mid = max / 2 + 1;
-	uint cp1 = urand(1, mid);
-	uint cp2 = urand(mid, max);
+	uint cp1 = urand(1, max - 1);
+	uint cp2 = urand(cp1, max);
 
 	children[0].num_stmts = mom->num_stmts;
 	children[1].num_stmts = dad->num_stmts;
@@ -387,7 +405,7 @@ void gp_world_evolve(GpWorld * world, uint times)
 
 uint gp_world_evolve_secs(GpWorld * world, uint nsecs)
 {
-	static const uint STEPS = 2;
+	static const uint STEPS = 1;
 
 	const clock_t nclocks = nsecs * CLOCKS_PER_SEC;
 	clock_t start = clock();
@@ -395,7 +413,7 @@ uint gp_world_evolve_secs(GpWorld * world, uint nsecs)
 
 	while (clock() - start < nclocks)
 	{
-		gp_world_evolve(world, STEPS);
+		gp_world_evolve_step(world);
 		times += STEPS;
 	}
 

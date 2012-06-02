@@ -21,19 +21,13 @@ typedef struct {
 
 #define GP_MAX_ARGS 2
 
-static inline gp_num_t gp_get_arg(GpState * state, GpArg arg)
+static gp_num_t gp_get_arg(GpState * state, GpArg arg)
 {
-	switch (arg.type)
-	{
-	case GP_ARG_REGISTER:
+	if (arg.type == GP_ARG_REGISTER)
 		return state->registers[arg.data.reg];
-	case GP_ARG_CONSTANT:
+	else if (arg.type == GP_ARG_CONSTANT)
 		return arg.data.num;
-	case GP_ARG_INPUT:
-		return state->inputs[arg.data.reg];
-	default:
-		return 0;
-	}
+	return state->inputs[arg.data.reg];
 }
 
 GP_OPERATION(eq, 1)
@@ -61,6 +55,11 @@ GP_OPERATION(div, 2)
 	GP_Out = GP_Arg(0) / GP_Arg(1);
 }
 
+GP_OPERATION(square, 1)
+{
+	GP_Out = GP_Arg(0) * GP_Arg(0);
+}
+
 GP_OPERATION(abs, 1)
 {
 	GP_Out = fabs(GP_Arg(0));
@@ -68,7 +67,8 @@ GP_OPERATION(abs, 1)
 
 GP_OPERATION(pow, 2)
 {
-	GP_Out = pow(GP_Arg(0), fmod(GP_Arg(1), 10.0));
+	GP_Out = pow(GP_Arg(0), (int)GP_Arg(1) % 5);
+	/*	GP_Out = pow(GP_Arg(0), fmod(GP_Arg(1), 10.0)); */
 }
 
 // BITWISE FUNCTIONS

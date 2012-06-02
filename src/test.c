@@ -8,21 +8,33 @@ static gp_fitness_t eval(GpWorld * world, GpProgram * program)
 {
 	uint i;
 	gp_fitness_t fit = 0;
-	gp_num_t inp[1];
-	for (i = 0; i < 50; i++)
+	uint consec = 0;
+	for (i = 0; i < 30; i++)
 	{
-		inp[0] = i;
-		GpState state = gp_program_run(world, program, inp);
+		gp_num_t inp = (gp_num_t)i;
+		GpState state = gp_program_run(world, program, &inp);
 		int out = (int)fabs(state.registers[0]);
+
 		if (out == primes[i])
-			fit += 1;
+			fit += 1 + 0.25 * consec++;
+		else
+			consec = 0;
+
 	}
 	return fit;
 }
 
+static const gp_num_t constants[] = {
+	-10, -9, -8, -7, -6, -5, -4, -3, -2, -1,
+	0,
+	1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+	50,
+	100
+};
+
 static gp_num_t constant_func(void)
 {
-	return (gp_num_t)urand(0, 2000) - 1000;
+	return (gp_num_t)constants[urand(0,sizeof(constants)/sizeof(gp_num_t))];
 }
 
 int main(void)
@@ -33,26 +45,34 @@ int main(void)
 	gp_world_add_op(world, GP_OP(mul));
 	gp_world_add_op(world, GP_OP(sub));
 	gp_world_add_op(world, GP_OP(div));
-	gp_world_add_op(world, GP_OP(abs));
 	gp_world_add_op(world, GP_OP(eq));
+	gp_world_add_op(world, GP_OP(pow));
 
 	world->conf.constant_func      = &constant_func;
 	world->conf.evaluator          = &eval;
 	world->conf.population_size    = 10000;
 	world->conf.num_inputs         = 1;
 	world->conf.min_program_length = 4;
-	world->conf.max_program_length = 15;
+	world->conf.max_program_length = 20;
 	world->conf.num_registers      = 2;
 
 	gp_world_initialize(world);
 
+	uint loops = 0;
+	uint total_steps = 0;
+	float ips = 0.0;
 	for (;;)
 	{
 		uint times = gp_world_evolve_secs(world, 1);
-		printf("Best Fitness: %5.2f  Avg Fitness: %5.2f  Steps/sec: %u\n",
+		ips = (ips * loops + times) / (loops + 1);
+		total_steps += times;
+		printf("Best: %-7.2f  Avg: %-7.2f  Steps: %-6u  Steps/sec: %5.2f\n",
 			   world->data.best_fitness,
 			   world->data.avg_fitness,
-			   times);
+			   total_steps,
+			   ips);
+		loops++;
+
 	}
 }
 
