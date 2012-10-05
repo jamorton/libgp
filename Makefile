@@ -26,9 +26,12 @@ ifeq ($(DEBUG), 1)
 	CFLAGS:=$(CFLAGS) $(DEBUG_CFLAGS)
 endif
 
+LIB_OBJECTS=$(LIB_SOURCES:%.c=out/%.o)
+EXAMPLES_OBJECTS=$(basename $(EXAMPLES_SOURCES))
+
 #=============================================================================#
 
-LIB_OBJECTS=$(LIB_SOURCES:%.c=out/%.o)
+all: $(LIB_OUT) $(EXAMPLES_OBJECTS) docs
 
 $(LIB_OUT): $(LIB_OBJECTS)
 	ar rcs $@ $(LIB_OBJECTS)
@@ -37,14 +40,16 @@ $(LIB_OBJECTS): out/%.o: %.c $(LIB_INCLUDES)
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-examples/%: examples/%.c $(LIB_OUT)
+$(EXAMPLES_OBJECTS): %: %.c $(LIB_OUT)
 	$(CC) $(CFLAGS) -L. -lgp $< -o $@
 
-.PHONY: clean
 clean:
 	rm -f libgp.a
 	rm -f docs/*.html
-	rm -rf out/*
+	rm -rf $(LIB_OBJECTS)
+	rm -f $(EXAMPLES_OBJECTS)
 
 docs:
 	docco $(DOCS_SOURCES)
+
+.PHONY: clean
