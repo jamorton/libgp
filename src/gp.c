@@ -1,7 +1,7 @@
 
 // **gp.c** contains most of cgp's main functionality, including
 // allocation and setup for the world and program structures, as well
-// as evolution logic, genetic selectors, and genetic  operators
+// as evolution logic, genetic selectors, and genetic operators
 
 #include "gp.h"
 #include "mem.h"
@@ -85,7 +85,7 @@ void gp_world_initialize(GpWorld * world)
 // `gp_world_add_op` is used to  make an operation available for
 // use in programs. For example:
 //
-//     Gp_world_add_op(world, GP_OP(add));
+//     gp_world_add_op(world, GP_OP(add));
 //     gp_world_add_op(world, GP_OP(sub));
 //
 // A list of builtin operators can be found in **ops.h**
@@ -206,6 +206,36 @@ void gp_mutate(GpWorld * world, GpProgram * program)
 	uint len = (uint)(percent * program->num_stmts);
 	while (len--)
 		program->stmts[urand(0, program->num_stmts)] = gp_random_statement(world);
+}
+
+// Two point crossover, needed for introducting length changes
+void gp_cross_twopoint(GpProgram * mom, GpProgram * dad, GpProgram * child)
+{
+	uint mom_cp1 = urand(1, mom->num_stmts - 1);
+	uint mom_cp2 = urand(1, mom->num_stmts - 1);
+
+	uint dad_cp1 = urand(1, dad->num_stmts / 2 + 1);
+	uint dad_cp2 = urand(dad_cp1, dad->num_stmts / 2 + 1);
+
+	uint tmp;
+
+	// If the first cross point is greater then the second, swap them
+	if (mom_cp1 > mom_cp2) { tmp = mom_cp2; mom_cp2 = mom_cp1; mom_cp1 = tmp; }
+	if (dad_cp1 > dad_cp2) { tmp = dad_cp2; dad_cp2 = dad_cp1; dad_cp1 = tmp; }
+
+	child->num_stmts = mom->num_stmts - (mom_cp2 - mom_cp1) + (dad_cp2 - dad_cp1);
+	child->stmts = new_array(GpStatement, child->num_stmts);
+
+	uint i, j;
+
+	for (i = 0; i < mom_cp1; i++)
+		child->stmts[i] = mom->stmts[i];
+
+	for (j = dad_cp1; j < dad_cp2; j++)
+		child->stmts[i++] = dad->stmts[j];
+
+	for (j = mom_cp2; j < mom->num_stmts; j++)
+		child->stmts[i++] = mom->stmts[j];
 }
 
 // Homologous crossover technique that maintains lengths, from discipulus.
@@ -376,7 +406,13 @@ static inline void gp_world_evolve_step(GpWorld * world)
 
 		if (opt <= cross_range)
 		{
-			gp_cross_homologous(p1, p2, new_programs + i);
+			if (drand() < 0.1)
+			{
+				gp_cross_twopoint(p1, p2, new_programs + i);
+				gp_cross_twopoint(p1, p2, new_programs + i + 1);
+			}
+			else
+				gp_cross_homologous(p1, p2, new_programs + i);
 		}
 		else if (opt <= mutate_range)
 		{

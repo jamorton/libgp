@@ -97,5 +97,6 @@ uint        gp_world_evolve_secs (GpWorld *, uint);
 
 void        gp_mutate           (GpWorld *, GpProgram *);
 void        gp_cross_homologous (GpProgram *, GpProgram *, GpProgram *);
+void        gp_cross_twopoint   (GpProgram *, GpProgram *, GpProgram *);
 
 #endif
