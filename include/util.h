@@ -11,25 +11,28 @@ static inline uint umin(uint a, uint b)
 	return a < b ? a : b;
 }
 
-static inline ulong lrand(ulong low, ulong high)
-{
-	return ((ulong)gen_rand32() << 32 | (ulong)gen_rand32()) % (high - low) + low;
-}
-
 static inline uint urand(uint low, uint high)
 {
 	return gen_rand32() % (high - low) + low;
 }
 
-static inline double drand(void)
+static inline double rand_double(void)
 {
+	// FIXME: generate a 64-bit number here?
 	return (double)(gen_rand32()) / UINT32_MAX;
 }
 
-static inline float frand(void)
+static inline float rand_float(void)
 {
 	return (float)(gen_rand32()) / UINT32_MAX;
 }
 
+#if GP_TYPE==float
+  static inline GP_TYPE rand_num(void) { return rand_float(); }
+#elif GP_TYPE==double
+  static inline GP_TYPE rand_num(void) { return rand_double(); }
+#else
+  #error Invalid type specified for GP_TYPE
+#endif
 
 #endif

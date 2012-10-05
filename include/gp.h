@@ -12,10 +12,11 @@
   #define GP_TYPE float
 #endif
 
-typedef GP_TYPE gp_num_t;
 typedef unsigned int uint;
-typedef double gp_fitness_t;
 typedef unsigned long long ulong;
+
+typedef GP_TYPE gp_num_t;
+typedef double gp_fitness_t;
 
 #include "util.h"
 
@@ -70,8 +71,8 @@ typedef struct GpWorld {
 		uint min_program_length;
 		uint max_program_length;
 		uint num_registers;
-		double mutate_rate;
-        double crossover_rate;
+		float mutate_rate;
+        float crossover_rate;
 	} conf;
 
 	struct {
@@ -87,7 +88,6 @@ void        gp_program_delete   (GpProgram *);
 int         gp_program_equal    (GpProgram *, GpProgram *);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
 void        gp_program_debug    (GpProgram *);
-
 
 GpWorld *   gp_world_new         (void);
 void        gp_world_initialize  (GpWorld *);

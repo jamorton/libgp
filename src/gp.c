@@ -49,7 +49,7 @@ GpWorld * gp_world_new()
 
 static void init_err(const char * estr)
 {
-	printf("GP INIT ERROR: %s\n", estr);
+	printf("libgp init ERROR: %s\n", estr);
 	abort();
 }
 
@@ -200,9 +200,9 @@ int gp_program_equal(GpProgram * a, GpProgram * b)
 // Mutate an individual by randomly changing some of its instructions
 void gp_mutate(GpWorld * world, GpProgram * program)
 {
-	double percent = drand();
+	gp_num_t percent = rand_num();
 	// prefer lower percents
-	//percent = percent * percent;
+	/* percent = percent * percent; */
 	uint len = (uint)(percent * program->num_stmts);
 	while (len--)
 		program->stmts[urand(0, program->num_stmts)] = gp_random_statement(world);
@@ -279,10 +279,10 @@ void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * children)
 // to their fitness.
 // Roulette selection might be ideal, but unfortunately it has O(n) time
 // complexity and thus makes the evolve step loop O(n^2)
-static inline GpProgram * roulette_select(GpWorld * world, ulong total_fitness)
+static inline GpProgram * roulette_select(GpWorld * world, gp_fitness_t total_fitness)
 {
-	ulong targ = lrand(0, total_fitness);
-	ulong cur = 0;
+	gp_fitness_t targ = rand_double() * total_fitness;
+	gp_fitness_t cur = 0;
 	uint cur_idx = 0;
 
 	while (cur < targ)
@@ -394,19 +394,19 @@ static inline void gp_world_evolve_step(GpWorld * world)
 
 	GpProgram new_programs[popsize];
 
-	double cross_range = world->conf.crossover_rate;
-	double mutate_range = world->conf.mutate_rate + cross_range;
+	float cross_range = world->conf.crossover_rate;
+	float mutate_range = world->conf.mutate_rate + cross_range;
 
 	for (i = 0; i < popsize; i += 2)
 	{
-		double opt = drand();
+		float opt = rand_float();
 
 		GpProgram * p1 = tournament_select(world);
 		GpProgram * p2 = tournament_select(world);
 
 		if (opt <= cross_range)
 		{
-			if (drand() < 0.1)
+			if (rand_float() < 0.1f)
 			{
 				gp_cross_twopoint(p1, p2, new_programs + i);
 				gp_cross_twopoint(p1, p2, new_programs + i + 1);
@@ -420,7 +420,6 @@ static inline void gp_world_evolve_step(GpWorld * world)
 			gp_program_copy(p2, new_programs + i + 1);
 			gp_mutate(world, new_programs + i);
 			gp_mutate(world, new_programs + i + 1);
-
 		}
 		else
 		{
