@@ -8,7 +8,7 @@ LIB_OUT=libgp.a
 EXAMPLES_SOURCES=$(wildcard examples/*.c)
 
 # Docs
-DOCS_SOURCES = src/gp.c
+DOCS_SOURCES = src/gp.c $(EXAMPLES_SOURCES)
 
 #=============================================================================#
 
@@ -31,7 +31,7 @@ EXAMPLES_OBJECTS=$(basename $(EXAMPLES_SOURCES))
 
 #=============================================================================#
 
-all: $(LIB_OUT) $(EXAMPLES_OBJECTS) docs
+all: $(LIB_OUT) $(EXAMPLES_OBJECTS)
 
 $(LIB_OUT): $(LIB_OBJECTS)
 	ar rcs $@ $(LIB_OBJECTS)
@@ -52,4 +52,4 @@ clean:
 docs:
 	docco $(DOCS_SOURCES)
 
-.PHONY: clean
+.PHONY: clean docs

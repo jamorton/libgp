@@ -1,4 +1,13 @@
-libgp is a simple but fast linear genetic programming library written in C.
-libgp makes it easy to construct and test genetic programming problems efficiently.
+  _ _ _
+ | (_) |__   ___  ____
+ | | |  _ \ / _ `|  _ \
+ | | | |_) | (_| | |_) |
+ |_|_|____/ \__, | .__/
+ by jonanin |___/|_|
 
-copyright 2012 Jon 'Jonanin' Morton
+libgp is a simple but fast linear genetic programming library written in C.
+
+its goal is to make constructing and testing genetic programming problems
+efficiently as simple and fun as possible.
+
+disclaimer: http://i.imgur.com/IoWvl.jpg
