@@ -1,4 +1,4 @@
-cgp is a simple but fast linear genetic programming library written in C.
-cgp makes it easy to construct and test genetic programming problems efficiently.
+libgp is a simple but fast linear genetic programming library written in C.
+libgp makes it easy to construct and test genetic programming problems efficiently.
 
 copyright 2012 Jon 'Jonanin' Morton

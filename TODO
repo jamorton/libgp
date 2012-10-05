@@ -22,7 +22,7 @@
 [ ] Test framework
     [ ] comparing different configurations / operation sets
 	[ ] performance testing
-	[ ] cgp examples
+	[ ] examples
 	[ ] benchmarking iterations to solve a problem
 
 [ ] Investigate machine code programs / JIT

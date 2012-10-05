@@ -1,5 +1,5 @@
 
-// **gp.c** contains most of cgp's main functionality, including
+// **gp.c** contains most of libgp's main functionality, including
 // allocation and setup for the world and program structures, as well
 // as evolution logic, genetic selectors, and genetic operators
 

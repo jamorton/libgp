@@ -15,13 +15,13 @@ ifeq ($(DEBUG), 1)
 	CFLAGS:=$(CFLAGS) $(DEBUG_CFLAGS)
 endif
 
-bin/libcgp.a: $(LIB_SOURCES) $(LIB_INCLUDES)
+bin/libgp.a: $(LIB_SOURCES) $(LIB_INCLUDES)
 	mkdir -p bin
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: clean
 clean:
-	rm -f bin/libcgp.a
+	rm -f bin/libgp.a
 
 doc:
 	docco src/gp.c
