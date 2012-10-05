@@ -1,7 +1,5 @@
 .DS_Store
 gp
-.waf-*
-.lock-waf*
 build
 gmon.out
 gp.dSYM
@@ -9,3 +7,5 @@ out.txt
 stats.txt
 extra
 docs
+.#*
+bin
