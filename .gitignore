@@ -8,4 +8,5 @@ stats.txt
 extra
 docs
 .#*
-bin
+out
+*.a
