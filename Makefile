@@ -6,7 +6,13 @@ WARNINGS=-Wall -Wextra -Wpointer-arith -Wshadow \
 
 CC=gcc
 CFLAGS=$(WARNINGS) -std=c99 -O3 -Iinclude
+DEBUG_CFLAGS=-g -DDEBUG
 LIB_SOURCES=src/gp.c
+
+DEBUG ?= 1
+ifeq ($(DEBUG), 1)
+	CFLAGS:=$(CFLAGS) $(DEBUG_CFLAGS)
+endif
 
 bin/libcgp.a: $(LIB_SOURCES)
 	mkdir -p bin
