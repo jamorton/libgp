@@ -52,7 +52,10 @@ GP_OPERATION(mul, 2)
 
 GP_OPERATION(div, 2)
 {
-	GP_Out = GP_Arg(0) / GP_Arg(1);
+	if (GP_Arg(1) == 0)
+		GP_Out = 0;
+	else
+		GP_Out = GP_Arg(0) / GP_Arg(1);
 }
 
 GP_OPERATION(square, 1)

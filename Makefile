@@ -1,6 +1,6 @@
 
 # Library
-LIB_SOURCES=src/gp.c
+LIB_SOURCES=src/gp.c src/world.c src/program.c
 LIB_INCLUDES=$(wildcard include/*.h) $(wildcard src/*.h)
 LIB_OUT=libgp.a
 

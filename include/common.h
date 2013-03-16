@@ -1,6 +1,25 @@
 
-#ifndef __GP_UTIL_H__
-#define __GP_UTIL_H__
+#ifndef GP_INCLUDE_COMMON_H
+#define GP_INCLUDE_COMMON_H
+
+#include <stdint.h>
+
+#ifndef GP_MAX_REGISTERS
+  #define GP_MAX_REGISTERS 5
+#endif
+
+#ifndef GP_TYPE
+  #define GP_TYPE double
+#endif
+
+typedef unsigned int uint;
+typedef unsigned long long ulong;
+
+typedef GP_TYPE gp_num_t;
+typedef double gp_fitness_t;
+
+// Random number generation utilities
+// ----------------------------------
 
 #define HAVE_SSE2 1
 #define MEXP 19937

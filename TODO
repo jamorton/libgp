@@ -17,7 +17,6 @@
 [ ] The world init sequence is non-obvious and a bit verbose - refactor.
 
 [X] Standardize documentation and organize code (Docco?)
-    [ ] include custom docco.js with c language, and use github flavored markdown
 
 [ ] Test framework
     [ ] comparing different configurations / operation sets
