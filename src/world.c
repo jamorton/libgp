@@ -27,21 +27,28 @@ GpWorld * gp_world_new()
 	world->ops = NULL;
 	world->programs = NULL;
 
-	world->data.total_steps = 0;
+	world->stats.total_steps = 0;
+	world->stats.avg_fitness = 0;
+	world->stats.best_fitness = 0;
 
-	// Configuration defaults. Override these before calling `gp_world_initialize`
-	world->conf.population_size    = 10000;
-	world->conf.num_registers      = 2;
-	world->conf.num_inputs         = 0;
-	world->conf.min_program_length = 1;
-	world->conf.max_program_length = 5;
-	world->conf.crossover_rate     = 0.85;
-	world->conf.mutate_rate        = 0.15;
-	world->conf.evaluator          = NULL;
-	world->conf.constant_func      = NULL;
-	world->conf.minimize_fitness   = 0;
+	world->_total_fitness = 0;
 
 	return world;
+}
+
+GpWorldConf gp_world_conf()
+{
+	GpWorldConf conf;
+	conf.population_size    = 10000;
+	conf.num_registers      = 2;
+	conf.num_inputs         = 0;
+	conf.min_program_length = 1;
+	conf.max_program_length = 5;
+	conf.mutate_rate        = 0.15;
+	conf.evaluator          = NULL;
+	conf.constant_func      = NULL;
+	conf.minimize_fitness   = 0;
+	return conf;
 }
 
 static void _init_err(const char * estr)
@@ -53,25 +60,25 @@ static void _init_err(const char * estr)
 // `gp_world_initialize` should be called after the world has been
 // created and completely configured. No configuration should be changed
 // after calling this.
-void gp_world_initialize(GpWorld * world)
+void gp_world_initialize(GpWorld * world, GpWorldConf conf)
 {
-	if (world->conf.constant_func == NULL || world->conf.evaluator == NULL)
+	if (conf.constant_func == NULL || conf.evaluator == NULL)
 		_init_err("constant_func or evaluator not defined");
 
-	if (world->conf.num_registers > GP_MAX_REGISTERS)
+	if (conf.num_registers > GP_MAX_REGISTERS)
 		_init_err("num_registers is greater than GP_MAX_REGISTERS");
 
-	if (world->conf.min_program_length < 3)
+	if (conf.min_program_length < 3)
 		_init_err("min_program_length must be 3 or greater");
 
-	if (world->conf.max_program_length < world->conf.min_program_length)
+	if (conf.max_program_length < world->conf.min_program_length)
 		_init_err("max_program_length cannot be greater than min_program_length");
 
-	if ((world->conf.population_size & 1) != 0)
+	if ((conf.population_size & 1) != 0)
 		_init_err("population size must be an even number");
 
-	if (world->conf.mutate_rate + world->conf.crossover_rate > 1.0)
-		_init_err("mutate_rate + crossover_rate cannot be greater than 1");
+	world->conf = conf;
+	world->has_init = 1;
 
 	uint i;
 	world->programs = new_array(GpProgram, world->conf.population_size);
@@ -215,10 +222,10 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 	const uint popsize = world->conf.population_size;
 	uint i;
 
-	if (world->data.total_steps == 0) {
+	if (world->stats.total_steps == 0) {
 		for (i = 0; i < popsize; i++) {
 			world->programs[i].fitness = world->conf.evaluator(world, world->programs + i);
-			world->_private.total_fitness += world->programs[i].fitness;
+			world->_total_fitness += world->programs[i].fitness;
 			world->programs[i].evaluated = 1;
 		}
 	}
@@ -262,12 +269,12 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 #undef max
 #undef min
 
-	world->data.total_steps++;
+	world->stats.total_steps++;
 
 	if (progs[2] == progs[3])
 		return;
 
-	world->_private.total_fitness -= (progs[2]->fitness + progs[3]->fitness);
+	world->_total_fitness -= (progs[2]->fitness + progs[3]->fitness);
 
 	GpProgram p1, p2;
 	p1.evaluated = p2.evaluated = 1;
@@ -282,14 +289,14 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 	*(progs[2]) = p1;
 	*(progs[3]) = p2;
 
-	world->_private.total_fitness += (progs[2]->fitness + progs[3]->fitness);
+	world->_total_fitness += (progs[2]->fitness + progs[3]->fitness);
 }
 
 static void _process_stats(GpWorld * world)
 {
 	gp_sort_programs(world);
-	world->data.avg_fitness = world->_private.total_fitness / (gp_fitness_t)(world->conf.population_size);
-	world->data.best_fitness = world->programs[0].fitness;
+	world->stats.avg_fitness = world->_total_fitness / (gp_fitness_t)(world->conf.population_size);
+	world->stats.best_fitness = world->programs[0].fitness;
 }
 
 // Run `times` evolve steps
