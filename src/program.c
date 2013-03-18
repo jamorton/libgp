@@ -14,24 +14,17 @@ GpStatement gp_statement_random(GpWorld * world)
 	stmt.output = urand(0, world->conf.num_registers);
 	stmt.op = &world->ops[urand(0, world->num_ops)];
 
-	uint randopt = world->conf.num_inputs == 0 ? 2 : 3;
-
 	for (j = 0; j < stmt.op->num_args; j++)
 	{
-		switch (urand(0, randopt))
+		if (urand(0, 2))
 		{
-		case 0:
 			stmt.args[j].type = GP_ARG_REGISTER;
 			stmt.args[j].data.reg = urand(0, world->conf.num_registers);
-			break;
-		case 1:
+		}
+		else
+		{
 			stmt.args[j].type = GP_ARG_CONSTANT;
 			stmt.args[j].data.num = world->conf.constant_func();
-			break;
-		case 2:
-			stmt.args[j].type = GP_ARG_INPUT;
-			stmt.args[j].data.reg = urand(0, world->conf.num_inputs);
-			break;
 		}
 	}
 	return stmt;
@@ -102,9 +95,6 @@ static void _print_arg(FILE * f, GpArg arg)
 	case GP_ARG_CONSTANT:
 		fprintf(f, "%f",  arg.data.num);
 		break;
-	case GP_ARG_INPUT:
-		fprintf(f, "i%u", arg.data.reg);
-		break;
 	default:
 		fprintf(f, "<unknown>");
 	}
@@ -169,14 +159,20 @@ void gp_program_export_python(FILE * f, GpWorld * world, GpProgram * program)
 	fprintf(f, "    return r0\n");
 }
 
+static GpState _initialState = {
+	.registers = {0, 0, 0, 0, 0}, // MUST MATCH GP_MAX_REGISTERS
+	.ip = 0
+};
+
 // `gp_program_run` will execute the supplied `program` given inputs
 // and return the final run state
 GpState gp_program_run(GpWorld * world, GpProgram * program, gp_num_t * inputs)
 {
-	GpState state;
-	state.ip = 0;
-	memset(state.registers, 0, world->conf.num_registers * sizeof(gp_num_t));
-	state.inputs = inputs;
+	GpState state = _initialState;
+
+	for (uint i = 0; i < world->conf.num_inputs; i++)
+		state.registers[i] = inputs[i];
+
 	while (state.ip < program->num_stmts)
 	{
 		GpStatement * stmt = program->stmts + state.ip;

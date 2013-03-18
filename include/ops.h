@@ -27,9 +27,7 @@ typedef struct {
 #define GP_Arg(x) 														\
 	(args[x].type == GP_ARG_REGISTER ?									\
 		state->registers[args[x].data.reg] :							\
-		(args[x].type == GP_ARG_CONSTANT ?								\
-			args[x].data.num :											\
-			state->inputs[args[x].data.reg]))
+		args[x].data.num)												\
 
 #define GP_MAX_ARGS 2
 

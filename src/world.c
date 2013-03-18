@@ -29,10 +29,17 @@ GpWorld * gp_world_new()
 	world->stats.best_fitness = 0;
 
 	world->_stmt_buf = NULL;
+	world->_last_optimize = 0;
 
 	return world;
 }
 
+void gp_world_delete(GpWorld * world)
+{
+	delete(world->programs);
+	delete(world->_stmt_buf);
+	delete(world);
+}
 
 // Returns a default (sane) config
 GpWorldConf gp_world_conf_default()
@@ -47,7 +54,8 @@ GpWorldConf gp_world_conf_default()
 		.max_program_length = 10,
 		.mutate_rate = 0.4,
 		.crossover_rate = 0.9,
-		.minimize_fitness = 0
+		.minimize_fitness = 0,
+		.auto_optimize = 1
 	};
 }
 
@@ -76,6 +84,9 @@ void gp_world_initialize(GpWorld * world, GpWorldConf conf)
 
 	if ((conf.population_size & 1) != 0)
 		_init_err("population size must be an even number");
+
+	if (conf.num_inputs > conf.num_registers)
+		_init_err("num_inputs cannot be greater than num_registers");
 
 	world->conf = conf;
 	world->has_init = 1;
@@ -122,7 +133,7 @@ void gp_mutate(GpWorld * world, GpProgram * program)
 	uint i, idx;
 
 	// Change a statement
-	if (opt < 0.33) {
+	if (opt < 1.01) {
 		program->stmts[urand(0, program->num_stmts)] = gp_statement_random(world);
 
 		// Insert a random statement
@@ -145,13 +156,13 @@ void gp_mutate(GpWorld * world, GpProgram * program)
 // Two point crossover, needed for introducting length changes
 void gp_cross_twopoint(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProgram * child)
 {
-	uint mom_cp1 = urand(1, mom->num_stmts - 1);
-	uint mom_cp2 = urand(1, mom->num_stmts - 1);
+	uint mom_cp1 = urand(1, mom->num_stmts);
+	uint mom_cp2 = urand(1, mom->num_stmts);
 
 	//uint dad_cp1 = urand(1, dad->num_stmts / 2 + 1);
 	//uint dad_cp2 = urand(dad_cp1, dad->num_stmts / 2 + 1);
-	uint dad_cp1 = urand(1, dad->num_stmts - 1);
-	uint dad_cp2 = urand(1, dad->num_stmts - 1);
+	uint dad_cp1 = urand(1, dad->num_stmts);
+	uint dad_cp2 = urand(1, dad->num_stmts);
 
 	uint tmp;
 
@@ -160,8 +171,11 @@ void gp_cross_twopoint(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProg
 	if (dad_cp1 > dad_cp2) { tmp = dad_cp2; dad_cp2 = dad_cp1; dad_cp1 = tmp; }
 
 	uint stmts = mom->num_stmts - (mom_cp2 - mom_cp1) + (dad_cp2 - dad_cp1);
-	uint max_len = world->conf.max_program_length;
-	if (stmts > world->conf.max_program_length) {
+	const uint max_len = world->conf.max_program_length;
+	const uint min_len = world->conf.min_program_length;
+
+	if (stmts > max_len)
+	{
 		while (stmts > max_len && dad_cp2 > dad_cp1 + 1) {
 			dad_cp2--;
 			stmts--;
@@ -176,8 +190,19 @@ void gp_cross_twopoint(GpWorld * world, GpProgram * mom, GpProgram * dad, GpProg
 		}
 	}
 
+	if (stmts < min_len)
+	{
+		while (stmts < min_len && dad_cp1 > 0) {
+			dad_cp1--;
+			stmts++;
+		}
+		while (stmts < min_len && dad_cp2 < dad->num_stmts) {
+			dad_cp2++;
+			stmts++;
+		}
+	}
+
 	child->num_stmts = stmts;
-	child->stmts = new_array(GpStatement, child->num_stmts);
 
 	uint i, j;
 
@@ -280,16 +305,25 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 		return;
 
 	if (rand_double() < world->conf.crossover_rate)
-		gp_cross_homologous(progs[0], progs[1], progs[2], progs[3]);
-	else {
+	{
+		if (rand_double() < 0.90)
+			gp_cross_homologous(progs[0], progs[1], progs[2], progs[3]);
+		else
+		{
+			gp_cross_twopoint(world, progs[0], progs[1], progs[2]);
+			gp_cross_twopoint(world, progs[0], progs[1], progs[3]);
+		}
+	}
+	else
+	{
 		gp_program_copy(progs[0], progs[2]);
 		gp_program_copy(progs[1], progs[3]);
 	}
 
-	if (rand_double() < world->conf.mutate_rate) {
+	if (rand_double() < world->conf.mutate_rate)
 		gp_mutate(world, progs[2]);
+	if (rand_double() < world->conf.mutate_rate)
 		gp_mutate(world, progs[3]);
-	}
 
 	progs[2]->fitness = world->conf.evaluator(world, progs[2]);
 	progs[3]->fitness = world->conf.evaluator(world, progs[3]);
@@ -318,14 +352,25 @@ static void _sort_programs(GpWorld * world)
 
 static void _process_stats(GpWorld * world)
 {
-	gp_fitness_t tot = 0.0;
-	for (uint i = 0; i < world->conf.population_size; i++)
-		tot += world->programs[i].fitness;
+	gp_fitness_t total_fitness = 0.0;
+	int total_length = 0;
+
+	for (uint i = 0; i < world->conf.population_size; i++) {
+		total_fitness += world->programs[i].fitness;
+		total_length  += world->programs[i].num_stmts;
+	}
 
 	_sort_programs(world);
-	world->stats.avg_fitness = tot / (gp_fitness_t)world->conf.population_size;
+	world->stats.avg_fitness = total_fitness / (gp_fitness_t)world->conf.population_size + 1;
 	world->stats.best_fitness = world->programs[0].fitness;
 	world->stats.total_generations = (world->stats.total_steps * 2) / world->conf.population_size;
+	world->stats.avg_program_length = total_length / (float)world->conf.population_size;
+
+	if (world->stats.total_generations - world->_last_optimize > 7)
+	{
+		gp_world_optimize(world);
+		world->_last_optimize = world->stats.total_generations;
+	}
 }
 
 // Run `times` evolve steps
@@ -333,6 +378,8 @@ void gp_world_evolve(GpWorld * world, uint times)
 {
 	while (times--)
 		gp_world_evolve_steady_state(world);
+
+	_process_stats(world);
 }
 
 // Run evolve steps continuously until `nsecs` seconds has passed.

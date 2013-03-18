@@ -1,6 +1,6 @@
 
 # Library
-LIB_SOURCES=src/world.c src/program.c deps/SFMT/SFMT.c
+LIB_SOURCES=src/world.c src/program.c src/optimize.c deps/SFMT/SFMT.c
 LIB_INCLUDES=$(wildcard include/*.h) $(wildcard src/*.h)
 LIB_OUT=libgp.a
 
