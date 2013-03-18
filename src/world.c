@@ -219,25 +219,6 @@ void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * c1, GpPro
 		stmts2[i] = dad->stmts[i];
 }
 
-// Sort programs based on their fitness
-static void gp_sort_programs(GpWorld * world)
-{
-	// This macro-style qsort avoids function calls and contains
-	// performance improvements over stdlib's qsort.
-	if (world->conf.minimize_fitness)
-	{
-        #define CMP_L(a, b) (a->fitness < b->fitness)
-		QSORT(GpProgram, world->programs, world->conf.population_size, CMP_L);
-		#undef CMP_L
-	}
-	else
-	{
-        #define CMP_G(a, b) (a->fitness > b->fitness)
-		QSORT(GpProgram, world->programs, world->conf.population_size, CMP_G);
-		#undef CMP_G
-	}
-}
-
 // `gp_world_evolve_steady_state` uses a steady-state evolutionary algorithm
 // that will only perform one "breeding" operation per step
 static void gp_world_evolve_steady_state(GpWorld * world)
@@ -312,13 +293,34 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 	progs[3]->fitness = world->conf.evaluator(world, progs[3]);
 }
 
+// Sort programs based on their fitness
+static void _sort_programs(GpWorld * world)
+{
+	// This macro-style qsort avoids function calls and contains
+	// performance improvements over stdlib's qsort.
+#define CMP_L(a, b) (a->fitness < b->fitness)
+#define CMP_G(a, b) (a->fitness > b->fitness)
+
+	if (world->conf.minimize_fitness)
+	{
+		QSORT(GpProgram, world->programs, world->conf.population_size, CMP_L);
+	}
+	else
+	{
+		QSORT(GpProgram, world->programs, world->conf.population_size, CMP_G);
+	}
+
+#undef CMP_G
+#undef CMP_L
+}
+
 static void _process_stats(GpWorld * world)
 {
 	gp_fitness_t tot = 0.0;
 	for (uint i = 0; i < world->conf.population_size; i++)
 		tot += world->programs[i].fitness;
 
-	gp_sort_programs(world);
+	_sort_programs(world);
 	world->stats.avg_fitness = tot / (gp_fitness_t)world->conf.population_size;
 	world->stats.best_fitness = world->programs[0].fitness;
 }
