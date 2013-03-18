@@ -33,20 +33,22 @@ GpWorld * gp_world_new()
 	return world;
 }
 
+
+// Returns a default (sane) config
 GpWorldConf gp_world_conf_default()
 {
-	GpWorldConf conf;
-	conf.population_size    = 10000;
-	conf.num_registers      = 2;
-	conf.num_inputs         = 0;
-	conf.min_program_length = 1;
-	conf.max_program_length = 10;
-	conf.mutate_rate        = 0.40;
-	conf.crossover_rate     = 0.90;
-	conf.evaluator          = NULL;
-	conf.constant_func      = NULL;
-	conf.minimize_fitness   = 0;
-	return conf;
+	return (GpWorldConf) {
+		.evaluator = NULL,
+		.constant_func = NULL,
+		.population_size = 10000,
+		.num_inputs = 0,
+		.num_registers = 2,
+		.min_program_length = 4,
+		.max_program_length = 10,
+		.mutate_rate = 0.4,
+		.crossover_rate = 0.9,
+		.minimize_fitness = 0
+	};
 }
 
 static void _init_err(const char * estr)
