@@ -10,3 +10,5 @@ docs
 .#*
 out
 *.a
+*.dSYM
+examples/sqrt
