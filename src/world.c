@@ -323,6 +323,7 @@ static void _process_stats(GpWorld * world)
 	_sort_programs(world);
 	world->stats.avg_fitness = tot / (gp_fitness_t)world->conf.population_size;
 	world->stats.best_fitness = world->programs[0].fitness;
+	world->stats.total_generations = (world->stats.total_steps * 2) / world->conf.population_size;
 }
 
 // Run `times` evolve steps

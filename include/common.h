@@ -21,6 +21,9 @@ typedef double gp_fitness_t;
 #define gp_min(a,b) ((a)<(b)?(a):(b))
 #define gp_max(a,b) ((a)>(b)?(a):(b))
 
+#define gp_likely(x)       __builtin_expect((x),1)
+#define gp_unlikely(x)     __builtin_expect((x),0)
+
 // Random number generation utilities
 // ----------------------------------
 
@@ -42,7 +45,6 @@ static inline uint urand(uint low, uint high)
 
 static inline double rand_double(void)
 {
-	// FIXME: generate a 64-bit number here?
 	return sfmt_genrand_real1(&_sfmt);
 }
 

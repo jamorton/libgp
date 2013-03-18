@@ -56,6 +56,7 @@ GP_OPERATION_INFIX(mul, "*")
 GP_OPERATION_INFIX(div, "/")
 {
 	const gp_num_t arg1 = GP_Arg(1);
+
 	if (arg1 == 0)
 		GP_Out = 0;
 	else

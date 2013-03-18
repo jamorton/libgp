@@ -58,7 +58,6 @@ GpProgram * gp_program_new(GpWorld * world)
 }
 
 // Copy all of one program's satements and data to another
-// **Does NOT** free `dst`'s stmts.
 void gp_program_copy(GpProgram * src, GpProgram * dst)
 {
 	dst->evaluated = src->evaluated;

@@ -82,6 +82,7 @@ struct GpWorld_t {
 		gp_fitness_t avg_fitness;
 		gp_fitness_t best_fitness;
 		uint total_steps;
+		uint total_generations;
 	} stats;
 
 	// private
