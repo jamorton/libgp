@@ -63,15 +63,15 @@ typedef struct GpWorldConf_t {
 	gp_num_t (*constant_func)(void);
 	uint population_size;
 	uint num_inputs;
+	uint num_registers;
 	uint min_program_length;
 	uint max_program_length;
-	uint num_registers;
 	float mutate_rate;
+	float crossover_rate;
 	int minimize_fitness;
 } GpWorldConf;
 
 struct GpWorld_t {
-
 	GpProgram * programs;
 	GpWorldConf conf;
 	uint num_ops;
@@ -85,8 +85,7 @@ struct GpWorld_t {
 	} stats;
 
 	// private
-	gp_fitness_t _total_fitness;
-
+	GpStatement * _stmt_buf;
 };
 
 //
@@ -101,15 +100,17 @@ void        gp_program_copy     (GpProgram *, GpProgram *);
 void        gp_program_delete   (GpProgram *);
 int         gp_program_equal    (GpProgram *, GpProgram *);
 GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
-void        gp_program_print    (GpProgram *, FILE * f);
+void        gp_program_print    (FILE *, GpProgram *);
+
+void        gp_program_export_python (FILE *, GpWorld *, GpProgram *);
 
 // World-related functions
-GpWorld *   gp_world_new         (void);
-void        gp_world_initialize  (GpWorld *, GpWorldConf);
-GpWorldConf gp_world_conf        (void);
-void        gp_world_add_op      (GpWorld *, GpOperation);
-void        gp_world_evolve      (GpWorld *, uint);
-uint        gp_world_evolve_secs (GpWorld *, uint);
+GpWorld *   gp_world_new          (void);
+void        gp_world_initialize   (GpWorld *, GpWorldConf);
+GpWorldConf gp_world_conf_default (void);
+void        gp_world_add_op       (GpWorld *, GpOperation);
+void        gp_world_evolve       (GpWorld *, uint);
+uint        gp_world_evolve_secs  (GpWorld *, uint);
 
 // Evolution functions
 void        gp_mutate           (GpWorld *, GpProgram *);

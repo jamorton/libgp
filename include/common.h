@@ -18,12 +18,17 @@ typedef unsigned long long ulong;
 typedef GP_TYPE gp_num_t;
 typedef double gp_fitness_t;
 
+#define gp_min(a,b) ((a)<(b)?(a):(b))
+#define gp_max(a,b) ((a)>(b)?(a):(b))
+
 // Random number generation utilities
 // ----------------------------------
 
-#define HAVE_SSE2 1
-#define MEXP 19937
-#include "SFMT/SFMT.h"
+#define SFMT_HAVE_SSE2 1
+#define SFMT_MEXP 19937
+#include "SFMT.h"
+
+extern sfmt_t _sfmt;
 
 static inline uint umin(uint a, uint b)
 {
@@ -32,18 +37,18 @@ static inline uint umin(uint a, uint b)
 
 static inline uint urand(uint low, uint high)
 {
-	return gen_rand32() % (high - low) + low;
+	return sfmt_genrand_uint32(&_sfmt) % (high - low) + low;
 }
 
 static inline double rand_double(void)
 {
 	// FIXME: generate a 64-bit number here?
-	return (double)(gen_rand32()) / UINT32_MAX;
+	return sfmt_genrand_real1(&_sfmt);
 }
 
 static inline float rand_float(void)
 {
-	return (float)(gen_rand32()) / UINT32_MAX;
+	return (float)rand_double();
 }
 
 #if GP_TYPE==float

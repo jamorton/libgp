@@ -3,25 +3,22 @@
 #include "mem.h"
 #include "iqsort.h"
 
-#include "SFMT/SFMT.c"
-
 #include <time.h>
 #include <string.h>
 
-//
-// ### GpWorld  ###
-//
-static int gp_has_init = 0;
+sfmt_t _sfmt;
+static int _sfmt_has_init = 0;
 
 // `gp_world_new` creates a new world with a default config.
 // After a world is created, custom configuration should be set and
 // the desired list of operations should be added with `gp_world_add_op`.
 GpWorld * gp_world_new()
 {
-	if (!gp_has_init) {
-		init_gen_rand(time(NULL));
-		gp_has_init = 1;
+	if (!_sfmt_has_init) {
+		sfmt_init_gen_rand(&_sfmt, time(NULL));
+		_sfmt_has_init = 1;
 	}
+
 	GpWorld * world = new(GpWorld);
 	world->num_ops = 0;
 	world->ops = NULL;
@@ -31,20 +28,21 @@ GpWorld * gp_world_new()
 	world->stats.avg_fitness = 0;
 	world->stats.best_fitness = 0;
 
-	world->_total_fitness = 0;
+	world->_stmt_buf = NULL;
 
 	return world;
 }
 
-GpWorldConf gp_world_conf()
+GpWorldConf gp_world_conf_default()
 {
 	GpWorldConf conf;
 	conf.population_size    = 10000;
 	conf.num_registers      = 2;
 	conf.num_inputs         = 0;
 	conf.min_program_length = 1;
-	conf.max_program_length = 5;
-	conf.mutate_rate        = 0.15;
+	conf.max_program_length = 10;
+	conf.mutate_rate        = 0.40;
+	conf.crossover_rate     = 0.90;
 	conf.evaluator          = NULL;
 	conf.constant_func      = NULL;
 	conf.minimize_fitness   = 0;
@@ -80,17 +78,28 @@ void gp_world_initialize(GpWorld * world, GpWorldConf conf)
 	world->conf = conf;
 	world->has_init = 1;
 
-	uint i;
 	world->programs = new_array(GpProgram, world->conf.population_size);
-	for (i = 0; i < world->conf.population_size; i++)
-		gp_program_init(world, world->programs + i);
+
+	int bufsize = conf.population_size * conf.max_program_length;
+	world->_stmt_buf = new_array(GpStatement, bufsize);
+
+	uint i, j;
+	for (i = 0; i < world->conf.population_size; i++) {
+		GpProgram * program = world->programs + i;
+		program->evaluated = 0;
+		program->stmts = world->_stmt_buf + i * conf.max_program_length;
+		program->num_stmts = urand(world->conf.min_program_length,
+			world->conf.max_program_length + 1);
+		for (j = 0; j < program->num_stmts; j++)
+			program->stmts[j] = gp_statement_random(world);
+	}
 }
 
 // `gp_world_add_op` is used to  make an operation available for
 // use in programs. For example:
 //
-//     gp_world_add_op(world, GP_OP(add));
-//     gp_world_add_op(world, GP_OP(sub));
+//     gp_world_add_op(world, gp_op_add);
+//     gp_world_add_op(world, gp_op_sub);
 //
 // A list of builtin operators can be found in **ops.h**
 void gp_world_add_op(GpWorld * world, GpOperation op)
@@ -107,12 +116,28 @@ void gp_world_add_op(GpWorld * world, GpOperation op)
 // Mutate an individual by randomly changing some of its instructions
 void gp_mutate(GpWorld * world, GpProgram * program)
 {
-	gp_num_t percent = rand_num();
-	// prefer lower percents
-	percent = percent * percent;
-	uint len = (uint)(percent * program->num_stmts);
-	while (len--)
+	double opt = rand_double();
+	uint i, idx;
+
+	// Change a statement
+	if (opt < 0.33) {
 		program->stmts[urand(0, program->num_stmts)] = gp_statement_random(world);
+
+		// Insert a random statement
+	} else if (opt < 0.66 && program->num_stmts < world->conf.max_program_length) {
+		program->num_stmts++;
+		idx = urand(0, program->num_stmts);
+		for (i = program->num_stmts - 1; i > idx; i--)
+			program->stmts[i] = program->stmts[i - 1];
+		program->stmts[idx] = gp_statement_random(world);
+
+		// Delete a random statement
+	} else if (program->num_stmts > world->conf.min_program_length) {
+		idx = urand(0, program->num_stmts);
+		program->num_stmts--;
+		for (i = idx; i < program->num_stmts; i++)
+			program->stmts[i] = program->stmts[i + 1];
+	}
 }
 
 // Two point crossover, needed for introducting length changes
@@ -174,8 +199,6 @@ void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * c1, GpPro
 
 	c1->num_stmts = mom->num_stmts;
 	c2->num_stmts = dad->num_stmts;
-	c1->stmts = new_array(GpStatement, c1->num_stmts);
-	c2->stmts = new_array(GpStatement, c2->num_stmts);
 
 	GpStatement * stmts1 = c1->stmts;
 	GpStatement * stmts2 = c2->stmts;
@@ -225,7 +248,6 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 	if (world->stats.total_steps == 0) {
 		for (i = 0; i < popsize; i++) {
 			world->programs[i].fitness = world->conf.evaluator(world, world->programs + i);
-			world->_total_fitness += world->programs[i].fitness;
 			world->programs[i].evaluated = 1;
 		}
 	}
@@ -274,28 +296,30 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 	if (progs[2] == progs[3])
 		return;
 
-	world->_total_fitness -= (progs[2]->fitness + progs[3]->fitness);
+	if (rand_double() < world->conf.crossover_rate)
+		gp_cross_homologous(progs[0], progs[1], progs[2], progs[3]);
+	else {
+		gp_program_copy(progs[0], progs[2]);
+		gp_program_copy(progs[1], progs[3]);
+	}
 
-	GpProgram p1, p2;
-	p1.evaluated = p2.evaluated = 1;
+	if (rand_double() < world->conf.mutate_rate) {
+		gp_mutate(world, progs[2]);
+		gp_mutate(world, progs[3]);
+	}
 
-	gp_cross_homologous(progs[0], progs[1], &p1, &p2);
-	p1.fitness = world->conf.evaluator(world, &p1);
-	p2.fitness = world->conf.evaluator(world, &p2);
-
-	delete(progs[2]->stmts);
-	delete(progs[3]->stmts);
-
-	*(progs[2]) = p1;
-	*(progs[3]) = p2;
-
-	world->_total_fitness += (progs[2]->fitness + progs[3]->fitness);
+	progs[2]->fitness = world->conf.evaluator(world, progs[2]);
+	progs[3]->fitness = world->conf.evaluator(world, progs[3]);
 }
 
 static void _process_stats(GpWorld * world)
 {
+	gp_fitness_t tot = 0.0;
+	for (uint i = 0; i < world->conf.population_size; i++)
+		tot += world->programs[i].fitness;
+
 	gp_sort_programs(world);
-	world->stats.avg_fitness = world->_total_fitness / (gp_fitness_t)(world->conf.population_size);
+	world->stats.avg_fitness = tot / (gp_fitness_t)world->conf.population_size;
 	world->stats.best_fitness = world->programs[0].fitness;
 }
 

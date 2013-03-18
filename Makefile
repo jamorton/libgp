@@ -1,6 +1,6 @@
 
 # Library
-LIB_SOURCES=src/world.c src/program.c
+LIB_SOURCES=src/world.c src/program.c deps/SFMT/SFMT.c
 LIB_INCLUDES=$(wildcard include/*.h) $(wildcard src/*.h)
 LIB_OUT=libgp.a
 
@@ -18,7 +18,7 @@ WARNINGS=-Wall -Wextra -Wshadow -pedantic -Werror \
          -Wno-unused-variable
 
 CC=gcc
-CFLAGS=$(WARNINGS) -std=c99 -O3 -Iinclude
+CFLAGS=$(WARNINGS) -std=c99 -O3 -Iinclude -Ideps/SFMT -DSFMT_MEXP=19937 -DHAVE_SSE2
 DEBUG_CFLAGS=-g -DDEBUG
 
 DEBUG ?= 1

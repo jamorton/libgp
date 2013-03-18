@@ -16,8 +16,10 @@ GpStatement gp_statement_random(GpWorld * world)
 
 	uint randopt = world->conf.num_inputs == 0 ? 2 : 3;
 
-	for (j = 0; j < stmt.op->num_args; j++) {
-		switch (urand(0, randopt)) {
+	for (j = 0; j < stmt.op->num_args; j++)
+	{
+		switch (urand(0, randopt))
+		{
 		case 0:
 			stmt.args[j].type = GP_ARG_REGISTER;
 			stmt.args[j].data.reg = urand(0, world->conf.num_registers);
@@ -59,8 +61,9 @@ GpProgram * gp_program_new(GpWorld * world)
 // **Does NOT** free `dst`'s stmts.
 void gp_program_copy(GpProgram * src, GpProgram * dst)
 {
+	dst->evaluated = src->evaluated;
+	dst->fitness = src->fitness;
 	dst->num_stmts = src->num_stmts;
-	dst->stmts = new_array(GpStatement, dst->num_stmts);
 	memcpy(dst->stmts, src->stmts, dst->num_stmts * sizeof(GpStatement));
 }
 
@@ -78,7 +81,8 @@ int gp_program_equal(GpProgram * a, GpProgram * b)
 	if (a->num_stmts != b->num_stmts)
 		return 0;
 
-	for (i = 0; i < a->num_stmts; i++) {
+	for (i = 0; i < a->num_stmts; i++)
+	{
 		if (a->stmts[i].op != b->stmts[i].op)
 			return 0;
 
@@ -89,8 +93,26 @@ int gp_program_equal(GpProgram * a, GpProgram * b)
 	return 1;
 }
 
+static void _print_arg(FILE * f, GpArg arg)
+{
+	switch (arg.type)
+	{
+	case GP_ARG_REGISTER:
+		fprintf(f, "r%u", arg.data.reg);
+		break;
+	case GP_ARG_CONSTANT:
+		fprintf(f, "%f",  arg.data.num);
+		break;
+	case GP_ARG_INPUT:
+		fprintf(f, "i%u", arg.data.reg);
+		break;
+	default:
+		fprintf(f, "<unknown>");
+	}
+}
+
 // Print out a program's instructions, one per line
-void gp_program_print(GpProgram * program, FILE * f)
+void gp_program_print(FILE * f, GpProgram * program)
 {
 	uint i, j;
 	for (i = 0; i < program->num_stmts; i++)
@@ -99,25 +121,53 @@ void gp_program_print(GpProgram * program, FILE * f)
 		fprintf(f, "r%u = %s ", stmt->output, stmt->op->name);
 		for (j = 0; j < stmt->op->num_args; j++)
 		{
-			switch (stmt->args[j].type)
-			{
-			case GP_ARG_REGISTER:
-				fprintf(f, "r%u", stmt->args[j].data.reg);
-				break;
-			case GP_ARG_CONSTANT:
-				fprintf(f, "%f", stmt->args[j].data.num);
-				break;
-			case GP_ARG_INPUT:
-				fprintf(f, "i%u", stmt->args[j].data.reg);
-				break;
-			default:
-				printf("<unknown>");
-			}
+			_print_arg(f, stmt->args[j]);
 			if (j != stmt->op->num_args - 1)
 				fprintf(f, ", ");
 		}
 		fprintf(f, "\n");
 	}
+}
+
+// Exports the specified program to a simple python function
+void gp_program_export_python(FILE * f, GpWorld * world, GpProgram * program)
+{
+	uint i, j;
+	fprintf(f, "def f(");
+
+	for (i = 0; i < world->conf.num_inputs - 1; i++)
+		fprintf(f, "i%d, ", i);
+
+	fprintf(f, "i%d):\n    ", i);
+
+	for (i = 0; i < world->conf.num_registers; i++)
+		fprintf(f, "r%d = ", i);
+	fprintf(f, "0\n");
+
+	for (i = 0; i < program->num_stmts; i++)
+	{
+		GpStatement * stmt = &program->stmts[i];
+		fprintf(f, "    r%d = ", stmt->output);
+		if (stmt->op->infix != NULL)
+		{
+			_print_arg(f, stmt->args[0]);
+			fprintf(f, " %s ", stmt->op->infix);
+			_print_arg(f, stmt->args[1]);
+		}
+		else
+		{
+			fprintf(f, "%s(", stmt->op->name);
+			for (j = 0; j < stmt->op->num_args; j++)
+			{
+				_print_arg(f, stmt->args[j]);
+				if (j != stmt->op->num_args - 1)
+					fprintf(f, ", ");
+			}
+			fprintf(f, ")");
+		}
+		fprintf(f, "\n");
+	}
+	fprintf(f, "    return r0\n");
 }
 
 // `gp_program_run` will execute the supplied `program` given inputs
