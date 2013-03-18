@@ -337,9 +337,9 @@ void gp_world_evolve(GpWorld * world, uint times)
 
 // Run evolve steps continuously until `nsecs` seconds has passed.
 // Returns the number of iterations taken.
-uint gp_world_evolve_secs(GpWorld * world, uint nsecs)
+uint gp_world_evolve_secs(GpWorld * world, float nsecs)
 {
-	const clock_t nclocks = nsecs * CLOCKS_PER_SEC;
+	const clock_t nclocks = (clock_t)(nsecs * CLOCKS_PER_SEC);
 	clock_t start = clock();
 	uint times = 0;
 

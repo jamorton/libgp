@@ -94,16 +94,16 @@ struct GpWorld_t {
 //
 
 // Program-related functions
-GpStatement gp_statement_random (GpWorld *);
-GpProgram * gp_program_new      (GpWorld *);
-void        gp_program_init     (GpWorld *, GpProgram *);
-void        gp_program_copy     (GpProgram *, GpProgram *);
-void        gp_program_delete   (GpProgram *);
-int         gp_program_equal    (GpProgram *, GpProgram *);
-GpState     gp_program_run      (GpWorld *, GpProgram *, gp_num_t *);
-void        gp_program_print    (FILE *, GpProgram *);
-
+GpStatement gp_statement_random      (GpWorld *);
+GpProgram * gp_program_new           (GpWorld *);
+void        gp_program_init          (GpWorld *, GpProgram *);
+void        gp_program_copy          (GpProgram *, GpProgram *);
+void        gp_program_delete        (GpProgram *);
+int         gp_program_equal         (GpProgram *, GpProgram *);
+GpState     gp_program_run           (GpWorld *, GpProgram *, gp_num_t *);
+void        gp_program_print         (FILE *, GpProgram *);
 void        gp_program_export_python (FILE *, GpWorld *, GpProgram *);
+void        gp_program_optimize      (GpProgram *);
 
 // World-related functions
 GpWorld *   gp_world_new          (void);
@@ -111,7 +111,7 @@ void        gp_world_initialize   (GpWorld *, GpWorldConf);
 GpWorldConf gp_world_conf_default (void);
 void        gp_world_add_op       (GpWorld *, GpOperation);
 void        gp_world_evolve       (GpWorld *, uint);
-uint        gp_world_evolve_secs  (GpWorld *, uint);
+uint        gp_world_evolve_secs  (GpWorld *, float);
 
 // Evolution functions
 void        gp_mutate           (GpWorld *, GpProgram *);
