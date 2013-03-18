@@ -1,5 +1,5 @@
 
-#include "cgp.h"
+#include "gp.h"
 #include "mem.h"
 
 #include <string.h>
