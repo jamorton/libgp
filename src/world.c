@@ -56,7 +56,7 @@ GpWorldConf gp_world_conf_default()
 		.num_ops = 5,
 		.evaluator = NULL,
 		.constant_func = NULL,
-		.population_size = 10000,
+		.population_size = 50000,
 		.num_inputs = 0,
 		.num_registers = 2,
 		.min_program_length = 4,
@@ -129,28 +129,7 @@ void gp_world_initialize(GpWorld * world, GpWorldConf conf)
 // Mutate an individual by randomly changing some of its instructions
 void gp_mutate(GpWorld * world, GpProgram * program)
 {
-	double opt = rand_double();
-	uint i, idx;
-
-	// Change a statement
-	if (opt < 1.01) {
-		program->stmts[urand(0, program->num_stmts)] = gp_statement_random(world);
-
-		// Insert a random statement
-	} else if (opt < 0.66 && program->num_stmts < world->conf.max_program_length) {
-		program->num_stmts++;
-		idx = urand(0, program->num_stmts);
-		for (i = program->num_stmts - 1; i > idx; i--)
-			program->stmts[i] = program->stmts[i - 1];
-		program->stmts[idx] = gp_statement_random(world);
-
-		// Delete a random statement
-	} else if (program->num_stmts > world->conf.min_program_length) {
-		idx = urand(0, program->num_stmts);
-		program->num_stmts--;
-		for (i = idx; i < program->num_stmts; i++)
-			program->stmts[i] = program->stmts[i + 1];
-	}
+	program->stmts[urand(0, program->num_stmts)] = gp_statement_random(world);
 }
 
 // Two point crossover, needed for introducting length changes
