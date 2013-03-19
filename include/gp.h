@@ -67,6 +67,7 @@ typedef struct GpWorldConf_ {
 	uint max_program_length;
 	float mutate_rate;
 	float crossover_rate;
+	float homologous_rate;
 	int minimize_fitness;
 	int auto_optimize;
 } GpWorldConf;

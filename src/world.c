@@ -63,6 +63,7 @@ GpWorldConf gp_world_conf_default()
 		.max_program_length = 10,
 		.mutate_rate = 0.4,
 		.crossover_rate = 0.9,
+		.homologous_rate = 0.9,
 		.minimize_fitness = 0,
 		.auto_optimize = 1
 	};
@@ -297,7 +298,7 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 
 	if (rand_double() < world->conf.crossover_rate)
 	{
-		if (rand_double() < 0.90)
+		if (rand_double() < world->conf.homologous_rate)
 			gp_cross_homologous(progs[0], progs[1], progs[2], progs[3]);
 		else
 		{
