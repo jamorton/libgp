@@ -12,3 +12,4 @@ out
 *.a
 *.dSYM
 examples/sqrt
+examples/test_configs
