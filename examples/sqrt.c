@@ -45,12 +45,6 @@ int main(void)
 		data[i].y = sqrt(data[i].x);
 	}
 
-	gp_world_add_op(world, gp_op_add);
-	gp_world_add_op(world, gp_op_mul);
-	gp_world_add_op(world, gp_op_sub);
-	gp_world_add_op(world, gp_op_div);
-	gp_world_add_op(world, gp_op_eq);
-
 	GpWorldConf conf = gp_world_conf_default();
 	conf.constant_func      = &constant_func;
 	conf.evaluator          = &eval;
