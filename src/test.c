@@ -7,7 +7,8 @@
 
 //
 // `gp_test_configurations` will compare a set of world configurations by initializing
-// a new world for each configuration in `confs`, running it for `iters` iterations.
+// a new world for each configuration in `confs`, running it for `iters` iterations,
+// and recording the resulting world stats.
 // Each configuration will be tested `num_times` times and the results will be averaged
 //
 void gp_test_configurations(GpWorldConf * confs, uint count, uint iters, uint num_times)
