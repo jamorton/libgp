@@ -20,8 +20,6 @@ GpWorld * gp_world_new()
 	}
 
 	GpWorld * world = new(GpWorld);
-	world->num_ops = 0;
-	world->ops = NULL;
 	world->programs = NULL;
 
 	world->stats.total_steps = 0;
@@ -41,10 +39,21 @@ void gp_world_delete(GpWorld * world)
 	delete(world);
 }
 
+static GpOperation _default_ops[5];
+
 // Returns a default (sane) config
 GpWorldConf gp_world_conf_default()
 {
+	// bah.
+	_default_ops[0] = gp_op_add;
+	_default_ops[1] = gp_op_sub;
+	_default_ops[2] = gp_op_mul;
+	_default_ops[3] = gp_op_div;
+	_default_ops[4] = gp_op_eq;
+
 	return (GpWorldConf) {
+		.ops = _default_ops,
+		.num_ops = 5,
 		.evaluator = NULL,
 		.constant_func = NULL,
 		.population_size = 10000,
@@ -106,24 +115,14 @@ void gp_world_initialize(GpWorld * world, GpWorldConf conf)
 		for (j = 0; j < program->num_stmts; j++)
 			program->stmts[j] = gp_statement_random(world);
 	}
-}
 
-// `gp_world_add_op` is used to  make an operation available for
-// use in programs. For example:
-//
-//     gp_world_add_op(world, gp_op_add);
-//     gp_world_add_op(world, gp_op_sub);
-//
-// A list of builtin operators can be found in **ops.h**
-void gp_world_add_op(GpWorld * world, GpOperation op)
-{
-	if (world->num_ops == 0)
-		world->ops = new(GpOperation);
-	else
-		world->ops = realloc(world->ops, sizeof(GpOperation) * (world->num_ops + 1));
+	if (world->conf.auto_optimize)
+		gp_world_optimize(world);
 
-	world->ops[world->num_ops] = op;
-	world->num_ops++;
+	for (i = 0; i < world->conf.population_size; i++) {
+		world->programs[i].fitness = world->conf.evaluator(world, world->programs + i);
+		world->programs[i].evaluated = 1;
+	}
 }
 
 // Mutate an individual by randomly changing some of its instructions
@@ -251,14 +250,6 @@ void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * c1, GpPro
 static void gp_world_evolve_steady_state(GpWorld * world)
 {
 	const uint popsize = world->conf.population_size;
-	uint i;
-
-	if (world->stats.total_steps == 0) {
-		for (i = 0; i < popsize; i++) {
-			world->programs[i].fitness = world->conf.evaluator(world, world->programs + i);
-			world->programs[i].evaluated = 1;
-		}
-	}
 
 	// selection by tournament: we pick 4 programs, the best two are mated and the offspring
 	// replace the worst 2.
@@ -361,28 +352,50 @@ static void _process_stats(GpWorld * world)
 	}
 
 	_sort_programs(world);
-	world->stats.avg_fitness = total_fitness / (gp_fitness_t)world->conf.population_size + 1;
-	world->stats.best_fitness = world->programs[0].fitness;
-	world->stats.total_generations = (world->stats.total_steps * 2) / world->conf.population_size;
-	world->stats.avg_program_length = total_length / (float)world->conf.population_size;
 
-	if (world->stats.total_generations - world->_last_optimize > 7)
-	{
-		gp_world_optimize(world);
-		world->_last_optimize = world->stats.total_generations;
-	}
+	world->stats.avg_fitness = total_fitness / (gp_fitness_t)world->conf.population_size;
+	world->stats.best_fitness = world->programs[0].fitness;
+	world->stats.total_generations = world->stats.total_steps * 2 / world->conf.population_size;
+	world->stats.avg_program_length = total_length / (float)world->conf.population_size;
 }
 
-// Run `times` evolve steps
-void gp_world_evolve(GpWorld * world, uint times)
+// Evolve `times` steps
+void gp_world_evolve_times(GpWorld * world, uint times)
 {
-	while (times--)
-		gp_world_evolve_steady_state(world);
+	uint optimize_every = times + 1;
+	if (world->conf.auto_optimize)
+		optimize_every = 6 * world->conf.population_size / 2;
 
+	for (uint i = 0; i < times; i++)
+	{
+		if (i % optimize_every == 0)
+			gp_world_optimize(world);
+
+		gp_world_evolve_steady_state(world);
+	}
 	_process_stats(world);
 }
 
-// Run evolve steps continuously until `nsecs` seconds has passed.
+// Evolve until `gens` generations have passed.
+void gp_world_evolve_gens(GpWorld * world, uint gens)
+{
+	const uint times = gens * world->conf.population_size / 2;
+
+	uint optimize_every = times + 1;
+	if (world->conf.auto_optimize)
+		optimize_every = 6 * world->conf.population_size / 2;
+
+	for (uint i = 0; i < times; i++)
+	{
+		if (i % optimize_every == 0)
+			gp_world_optimize(world);
+
+		gp_world_evolve_steady_state(world);
+	}
+	_process_stats(world);
+}
+
+// Run evolve steps continuously until `nsecs` seconds have passed.
 // Returns the number of iterations taken.
 uint gp_world_evolve_secs(GpWorld * world, float nsecs)
 {
@@ -390,9 +403,16 @@ uint gp_world_evolve_secs(GpWorld * world, float nsecs)
 	clock_t start = clock();
 	uint times = 0;
 
-	while (clock() - start < nclocks) {
+	uint optimize_every = 999999999;
+	if (world->conf.auto_optimize)
+		optimize_every = 6 * world->conf.population_size / 2;
+
+	while (clock() - start < nclocks)
+	{
+		if (times++ % optimize_every == 0)
+			gp_world_optimize(world);
+
 		gp_world_evolve_steady_state(world);
-		times++;
 	}
 
 	_process_stats(world);

@@ -1,6 +1,6 @@
 
-#ifndef GP_INCLUDE_CGP_H
-#define GP_INCLUDE_CGP_H
+#ifndef GP_INCLUDE_GP_H
+#define GP_INCLUDE_GP_H
 
 #include "common.h"
 
@@ -56,6 +56,8 @@ typedef struct GpStatement_ GpStatement;
 typedef struct GpProgram_ GpProgram;
 
 typedef struct GpWorldConf_ {
+	GpOperation * ops;
+	uint num_ops;
 	gp_fitness_t (*evaluator)(GpWorld *, GpProgram *);
 	gp_num_t (*constant_func)(void);
 	uint population_size;
@@ -73,7 +75,6 @@ struct GpWorld_ {
 	GpProgram * programs;
 	GpWorldConf conf;
 	uint num_ops;
-	GpOperation * ops;
 	int has_init;
 
 	struct {
@@ -109,16 +110,19 @@ GpWorld *   gp_world_new           (void);
 void        gp_world_delete        (GpWorld *);
 void        gp_world_initialize    (GpWorld *, GpWorldConf);
 GpWorldConf gp_world_conf_default  (void);
-void        gp_world_add_op        (GpWorld *, GpOperation);
-void        gp_world_evolve        (GpWorld *, uint);
+void        gp_world_evolve_times  (GpWorld *, uint);
 uint        gp_world_evolve_secs   (GpWorld *, float);
+void        gp_world_evolve_gens   (GpWorld *, uint);
 void        gp_world_optimize      (GpWorld *);
-void        gp_world_optimize_test (void);
 
-
-// Evolution functions
+// Evolutionary operators
 void        gp_mutate           (GpWorld *, GpProgram *);
 void        gp_cross_homologous (GpProgram *, GpProgram *, GpProgram *, GpProgram *);
 void        gp_cross_twopoint   (GpWorld *, GpProgram *, GpProgram *, GpProgram *);
+
+// Testing functions
+void        gp_world_optimize_test (void);
+void        gp_test_configurations (GpWorldConf *, uint, uint, uint);
+void        gp_test_performance    (void);
 
 #endif

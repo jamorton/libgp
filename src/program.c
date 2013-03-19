@@ -12,7 +12,7 @@ GpStatement gp_statement_random(GpWorld * world)
 
 	GpStatement stmt;
 	stmt.output = urand(0, world->conf.num_registers);
-	stmt.op = &world->ops[urand(0, world->num_ops)];
+	stmt.op = &world->conf.ops[urand(0, world->conf.num_ops)];
 
 	for (j = 0; j < stmt.op->num_args; j++)
 	{

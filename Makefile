@@ -1,6 +1,6 @@
 
 # Library
-LIB_SOURCES=src/world.c src/program.c src/optimize.c deps/SFMT/SFMT.c
+LIB_SOURCES=src/world.c src/program.c src/optimize.c src/test.c deps/SFMT/SFMT.c
 LIB_INCLUDES=$(wildcard include/*.h) $(wildcard src/*.h)
 LIB_OUT=libgp.a
 
@@ -8,7 +8,7 @@ LIB_OUT=libgp.a
 EXAMPLES_SOURCES=$(wildcard examples/*.c)
 
 # Docs
-DOCS_SOURCES = src/gp.c $(EXAMPLES_SOURCES)
+DOCS_SOURCES = src/*.c
 
 #=============================================================================#
 
@@ -50,6 +50,6 @@ clean:
 	rm -f $(EXAMPLES_OBJECTS)
 
 docs:
-	docco $(DOCS_SOURCES)
+	docco -o docs $(DOCS_SOURCES)
 
 .PHONY: clean docs

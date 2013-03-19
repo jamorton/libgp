@@ -37,9 +37,6 @@ static uint _remove_introns(GpWorld * world, GpProgram * program)
 			program->stmts[idx++] = program->stmts[i];
 	}
 
-	if (idx < world->conf.min_program_length)
-		printf("BADBABDA %d  %d  originally %d\n", idx, world->conf.min_program_length, program->num_stmts);
-
 	uint num_introns = program->num_stmts - idx;
 	program->num_stmts = idx;
 
@@ -80,12 +77,6 @@ void gp_world_optimize_test()
 
 	for (int i = 0; i < TEST_SIZE; i++)
 		_test_data[i] = rand_num() * 10000;
-
-	gp_world_add_op(world, gp_op_add);
-	gp_world_add_op(world, gp_op_mul);
-	gp_world_add_op(world, gp_op_sub);
-	gp_world_add_op(world, gp_op_div);
-	gp_world_add_op(world, gp_op_eq);
 
 	GpWorldConf conf = gp_world_conf_default();
 	conf.num_registers = 3;
