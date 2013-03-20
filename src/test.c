@@ -38,7 +38,7 @@ void gp_test_configurations_iters(GpWorldConf * confs, uint count, uint iters, u
 			printf(".");
 		}
 
-		printf(" Best Fit %-8.2f  Avg Fit %-8.2f  Avg length %-4.2f\n",
+		printf("Best Fit %-8.2f  Avg Fit %-8.2f  Avg length %-6.2f\n",
 			best_tot / (gp_fitness_t)num_times,
 			avg_tot / (gp_fitness_t)num_times,
 			len_tot / (float)num_times);
@@ -54,16 +54,17 @@ void gp_test_configurations_secs(GpWorldConf * confs, uint count, float secs, ui
 		gp_fitness_t best_tot = 0.0;
 		gp_fitness_t avg_tot = 0.0;
 		float len_tot = 0;
+		uint iters_tot = 0;
 
 		setbuf(stdout, NULL);
 
-		printf("Testing conf %d.", i + 1);
+		printf("Testing %d.", i + 1);
 
 		for (uint j = 0; j < num_times; j++)
 		{
 			GpWorld * world = gp_world_new();
 			gp_world_initialize(world, confs[i]);
-			gp_world_evolve_secs(world, secs);
+			iters_tot += gp_world_evolve_secs(world, secs);
 
 			best_tot += world->stats.best_fitness;
 			avg_tot  += world->stats.avg_fitness;
@@ -74,10 +75,11 @@ void gp_test_configurations_secs(GpWorldConf * confs, uint count, float secs, ui
 			printf(".");
 		}
 
-		printf(" Best Fit %-8.2f  Avg Fit %-8.2f  Avg length %-4.2f\n",
+		printf("Best Fit %-7.2f Avg Fit %-7.2f Avg length %-6.2f Iters %-8.2f\n",
 			best_tot / (gp_fitness_t)num_times,
 			avg_tot / (gp_fitness_t)num_times,
-			len_tot / (float)num_times);
+			len_tot / (float)num_times,
+			iters_tot / (float)num_times);
 	}
 }
 

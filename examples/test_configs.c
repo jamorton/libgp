@@ -61,17 +61,13 @@ int main(void)
 	default_conf.minimize_fitness   = 1;
 	default_conf.mutate_rate        = 0.4;
 
-	GpWorldConf confs[8];
-	confs[0] = confs[1] = confs[2] = confs[3] = confs[4] = confs[5] = confs[6] = confs[7] = default_conf;
+	GpWorldConf confs[4];
+	confs[0] = confs[1] = confs[2] = confs[3] = default_conf;
 
-	confs[0].mutate_rate = 0.1;
-	confs[1].mutate_rate = 0.25;
-	confs[2].mutate_rate = 0.3;
-	confs[3].mutate_rate = 0.35;
-	confs[4].mutate_rate = 0.4;
-	confs[5].mutate_rate = 0.5;
-	confs[6].mutate_rate = 0.6;
-	confs[7].mutate_rate = 0.7;
+	confs[0].num_registers = 1;
+	confs[1].num_registers = 2;
+	confs[2].num_registers = 3;
+	confs[3].num_registers = 4;
 
-	gp_test_configurations_secs(confs, 8, 60, 3);
+	gp_test_configurations_secs(confs, sizeof(confs)/sizeof(GpWorldConf), 60, 4);
 }

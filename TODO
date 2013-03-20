@@ -12,9 +12,9 @@
 	    "function that matches a dataset" problem
 
 [ ] Test framework:
-    [X] comparing different configurations / operation sets
-	[ ] performance testing
-	[X] examples
+    [X] Comparing different configurations / operation sets
+	[ ] Performance testing
+	[X] Examples
 
 [ ] Misc:
 	[X] Refactor ops.h to use just structs instead of global vars
