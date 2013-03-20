@@ -1,4 +1,10 @@
 
+//
+// _optimize.c_ contains methods for optimizing program performance,
+// such as intron removal (which detects and deletes program statements
+// that provably have no effect on the final output)
+//
+
 #include "gp.h"
 
 #include <string.h>
@@ -33,7 +39,7 @@ static uint _remove_introns(GpWorld * world, GpProgram * program)
 	uint idx = 0;
 	for (uint i = 0; i < program->num_stmts; i++)
 	{
-		if (marked[i] || (int)program->num_stmts - (int)i <= (int)world->conf.min_program_length - (int)idx)
+		if (marked[i] || (int)program->num_stmts - i <= (int)world->conf.min_program_length - idx)
 			program->stmts[idx++] = program->stmts[i];
 	}
 
@@ -43,6 +49,10 @@ static uint _remove_introns(GpWorld * world, GpProgram * program)
 	return num_introns;
 }
 
+//
+// `gp_world_optimize` will run various optimizations functions on every
+// program in `world`.
+//
 void gp_world_optimize(GpWorld * world)
 {
 	uint introns_removed = 0;
@@ -70,6 +80,11 @@ static gp_fitness_t _test_eval(GpWorld * world, GpProgram * program)
 	return 0;
 }
 
+//
+// `gp_world_optimize_test` will set up a sample problem and record
+// program outputs for many inputs, then run a whole-world optimization,
+// and rerun all the programs making sure the outputs haven't changed
+//
 void gp_world_optimize_test()
 {
 

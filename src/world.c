@@ -59,8 +59,8 @@ GpWorldConf gp_world_conf_default()
 		.population_size = 50000,
 		.num_inputs = 0,
 		.num_registers = 2,
-		.min_program_length = 4,
-		.max_program_length = 10,
+		.min_program_length = 5,
+		.max_program_length = 30,
 		.mutate_rate = 0.4,
 		.crossover_rate = 0.9,
 		.homologous_rate = 0.9,
@@ -227,6 +227,7 @@ void gp_cross_homologous(GpProgram * mom, GpProgram * dad, GpProgram * c1, GpPro
 
 // `gp_world_evolve_steady_state` uses a steady-state evolutionary algorithm
 // that will only perform one "breeding" operation per step
+// Each call will replace two programs with new ones
 static void gp_world_evolve_steady_state(GpWorld * world)
 {
 	const uint popsize = world->conf.population_size;
@@ -298,6 +299,9 @@ static void gp_world_evolve_steady_state(GpWorld * world)
 
 	progs[2]->fitness = world->conf.evaluator(world, progs[2]);
 	progs[3]->fitness = world->conf.evaluator(world, progs[3]);
+
+	if (world->conf.auto_optimize && world->stats.total_steps % 300000 == 0)
+		gp_world_optimize(world);
 }
 
 // Sort programs based on their fitness
@@ -321,6 +325,10 @@ static void _sort_programs(GpWorld * world)
 #undef CMP_L
 }
 
+//
+// Recalculates various statistics in world->stats and sorts
+// the program by their fitness in descending order
+//
 static void _process_stats(GpWorld * world)
 {
 	gp_fitness_t total_fitness = 0.0;
@@ -342,17 +350,8 @@ static void _process_stats(GpWorld * world)
 // Evolve `times` steps
 void gp_world_evolve_times(GpWorld * world, uint times)
 {
-	uint optimize_every = times + 1;
-	if (world->conf.auto_optimize)
-		optimize_every = 6 * world->conf.population_size / 2;
-
-	for (uint i = 0; i < times; i++)
-	{
-		if (i % optimize_every == 0)
-			gp_world_optimize(world);
-
+	while (times--)
 		gp_world_evolve_steady_state(world);
-	}
 	_process_stats(world);
 }
 
@@ -360,19 +359,7 @@ void gp_world_evolve_times(GpWorld * world, uint times)
 void gp_world_evolve_gens(GpWorld * world, uint gens)
 {
 	const uint times = gens * world->conf.population_size / 2;
-
-	uint optimize_every = times + 1;
-	if (world->conf.auto_optimize)
-		optimize_every = 6 * world->conf.population_size / 2;
-
-	for (uint i = 0; i < times; i++)
-	{
-		if (i % optimize_every == 0)
-			gp_world_optimize(world);
-
-		gp_world_evolve_steady_state(world);
-	}
-	_process_stats(world);
+	gp_world_evolve_times(world, times);
 }
 
 // Run evolve steps continuously until `nsecs` seconds have passed.
@@ -383,16 +370,10 @@ uint gp_world_evolve_secs(GpWorld * world, float nsecs)
 	clock_t start = clock();
 	uint times = 0;
 
-	uint optimize_every = 999999999;
-	if (world->conf.auto_optimize)
-		optimize_every = 6 * world->conf.population_size / 2;
-
 	while (clock() - start < nclocks)
 	{
-		if (times++ % optimize_every == 0)
-			gp_world_optimize(world);
-
 		gp_world_evolve_steady_state(world);
+		times++;
 	}
 
 	_process_stats(world);
