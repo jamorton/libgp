@@ -49,7 +49,6 @@ int main(void)
 	conf.evaluator          = &eval;
 	conf.num_inputs         = 1;
 	conf.minimize_fitness   = 1;
-	conf.auto_optimize      = 0;
 
 	gp_world_initialize(world, conf);
 

@@ -53,7 +53,7 @@ int main(void)
 
 	default_conf.constant_func      = &constant_func;
 	default_conf.evaluator          = &eval;
-	default_conf.population_size    = 100000;
+	default_conf.population_size    = 50000;
 	default_conf.num_inputs         = 1;
 	default_conf.min_program_length = 5;
 	default_conf.max_program_length = 30;
@@ -73,5 +73,5 @@ int main(void)
 	confs[6].mutate_rate = 0.6;
 	confs[7].mutate_rate = 0.7;
 
-	gp_test_configurations(confs, 8, 3000000, 3);
+	gp_test_configurations_secs(confs, 8, 60, 3);
 }

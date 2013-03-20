@@ -123,7 +123,8 @@ void        gp_cross_twopoint   (GpWorld *, GpProgram *, GpProgram *, GpProgram 
 
 // Testing functions
 void        gp_world_optimize_test (void);
-void        gp_test_configurations (GpWorldConf *, uint, uint, uint);
+void        gp_test_configurations_iters (GpWorldConf *, uint, uint, uint);
+void        gp_test_configurations_secs (GpWorldConf *, uint, float, uint);
 void        gp_test_performance    (void);
 
 #endif

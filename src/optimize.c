@@ -94,7 +94,6 @@ void gp_world_optimize_test()
 		_test_data[i] = rand_num() * 10000;
 
 	GpWorldConf conf = gp_world_conf_default();
-	conf.num_registers = 3;
 	conf.constant_func = &_test_constant_func;
 	conf.evaluator = &_test_eval;
 	conf.num_inputs = 1;
